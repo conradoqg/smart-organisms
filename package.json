@@ -1,0 +1,17 @@
+{
+  "name": "smart-organisms",
+  "version": "0.0.1",
+  "description": "Simple genetic algorithm implementation for organisms",
+  "main": "index.js",
+  "dependencies": {
+    "budo": "^9.4.7",
+    "browserify": "^14.1.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "budo index.js:dist/bundle.js -dir . -l -o",
+    "dist": "browserify ./index.js -o dist/bundle.js"
+  },
+  "author": "Conrado Quilles Gomes <conradoqg@gmail.com>",
+  "license": "MIT"
+}
