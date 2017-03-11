@@ -4,6 +4,7 @@ const FitnessMeasurer = require('./fitnessMeasurer.js');
 class Organism {
     constructor(dnaOrGeneAmount) {
         this.pos = p5i.createVector(p5i.width / 2, p5i.height);
+        this.initialPos = this.pos.copy();
         this.size = { width: 25, height: 5};
         this.vel = p5i.createVector();
         this.acc = p5i.createVector();
@@ -11,10 +12,11 @@ class Organism {
         this.crashed = false;
         this.dna = (typeof(dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
         this.fitness = 0;
+        this.lifeSpan = 0;
     }
 
     calcFitness(target) {
-        this.fitness = FitnessMeasurer.method1(this, target);        
+        this.fitness = FitnessMeasurer.method2(this, target);        
     }
 
     mate(partner) {
@@ -25,6 +27,7 @@ class Organism {
     update(count) {
         this.acc.add(this.dna.genes[count]);
         if (!this.completed && !this.crashed) {
+            this.lifeSpan = count;
             this.vel.add(this.acc);
             this.pos.add(this.vel);
             this.acc.mult(0);
