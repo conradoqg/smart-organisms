@@ -1,31 +1,31 @@
 const Organism = require('./organism.js');
 
 class Population {
-    constructor(geneAmount, popsize) {
+    constructor(geneAmount, popSize) {
         this.rockets = [];   
-        this.popsize = popsize;     
+        this.popSize = popSize;     
         this.matingpool = [];
 
-        for (var i = 0; i < this.popsize; i++) {
+        for (var i = 0; i < this.popSize; i++) {
             this.rockets[i] = new Organism(geneAmount);
         }
     }
 
     evaluate(target) {
         var maxfit = 0;
-        for (var i = 0; i < this.popsize; i++) {
+        for (var i = 0; i < this.popSize; i++) {
             this.rockets[i].calcFitness(target);
             if (this.rockets[i].fitness > maxfit) {
                 maxfit = this.rockets[i].fitness;
             }
         }
 
-        for (var i = 0; i < this.popsize; i++) {
+        for (var i = 0; i < this.popSize; i++) {
             this.rockets[i].fitness /= maxfit;
         }
 
         this.matingpool = [];
-        for (var i = 0; i < this.popsize; i++) {
+        for (var i = 0; i < this.popSize; i++) {
             var n = this.rockets[i].fitness * 100;
             for (var j = 0; j < n; j++) {
                 this.matingpool.push(this.rockets[i]);

@@ -2,18 +2,7 @@ const Population = require('./population.js');
 
 class World {
     constructor() {
-        this.config = {
-            width: 600,
-            height: 600,
-            FPS: 30,            
-            popsize: 100,
-            lifespan: 1600,
-            seed: 10
-        };
-        this.population = null;
-        this.lifeP = null;
-        this.count = 0;        
-        this.generation = 1;
+        this.setInitialState();
         this.target = {
             x: this.config.width / 2,
             y: 50,
@@ -30,17 +19,50 @@ class World {
     setup() {
         // Canvas
         p5i.createCanvas(this.config.width, this.config.height);
-        p5i.frameRate(this.config.FPS);
+        
+        this.setP5InitialState();
 
         // Debug element
-        this.debugDiv = p5i.select('#debug');        
-        this.debugDiv.style('width', this.config.width.toString() + 'px');
-        this.debugDiv.style('height', this.config.height.toString() + 'px');        
-        this.lifeP = p5i.createDiv('');
-        this.lifeP.parent(this.debugDiv);
+        var debugContainer = p5i.select('#debugContainer');
+        debugContainer.style('width', this.config.width.toString() + 'px');
+        debugContainer.style('height', this.config.height.toString() + 'px');
 
-        // Seed random
-        p5i.randomSeed(this.config.seed);
+        this.debugDiv = p5i.select('#debug');        
+
+        var settingsContainer = p5i.select('#settingsContainer');
+        settingsContainer.style('width', this.config.width.toString() + 'px');
+        settingsContainer.style('height', this.config.height.toString() + 'px');
+
+        this.settingsDiv = p5i.select('#settings');
+        p5i.createElement('label', 'Seed: ').parent(this.settingsDiv);
+        this.seedInput = p5i.createInput(this.config.seed);
+        this.seedInput.size(30);
+        this.seedInput.parent(this.settingsDiv);
+        this.seedInput.addClass('input');
+
+        p5i.createElement('label', 'Pop Size: ').parent(this.settingsDiv);
+        this.popSizeInput = p5i.createInput(this.config.popSize);
+        this.popSizeInput.size(30);
+        this.popSizeInput.parent(this.settingsDiv);
+        this.popSizeInput.addClass('input');
+
+        p5i.createElement('label', 'Life Span: ').parent(this.settingsDiv);
+        this.lifeSpanInput = p5i.createInput(this.config.lifeSpan);
+        this.lifeSpanInput.size(30);
+        this.lifeSpanInput.parent(this.settingsDiv);
+        this.lifeSpanInput.addClass('input');
+
+        var controlContainer = p5i.select('#controlContainer');
+        controlContainer.style('width', this.config.width.toString() + 'px');
+        controlContainer.style('height', this.config.height.toString() + 'px');
+
+        this.controlDiv = p5i.select('#control');
+        this.resetButton = p5i.createButton('reset');
+        this.resetButton.parent(this.controlDiv);
+        this.resetButton.mousePressed(() => {
+            this.setInitialState(this.seedInput.value(), this.popSizeInput.value(), this.lifeSpanInput.value());
+            this.setP5InitialState();
+        });
 
         // p5        
         p5i.draw = this.render.bind(this);
@@ -48,10 +70,31 @@ class World {
             this.update();
             setTimeout(loop);
         };
-        loop();
+        loop();        
+    }
 
-        // Population
-        this.population = new Population(this.config.lifespan, this.config.popsize);
+    setInitialState(seed, popSize, lifeSpan) {
+        this.config = {
+            width: 600,
+            height: 600,
+            FPS: 30,
+            popSize:  (popSize == null ? 100 : parseInt(popSize)),
+            lifeSpan: (lifeSpan == null ? 1600 : parseInt(lifeSpan)),
+            seed: (seed == null ? 10 : parseInt(seed))
+        };                
+        this.population = null;
+        this.count = 0;
+        this.generation = 1;
+    }
+
+    setP5InitialState() {
+        // Frame rate
+        p5i.frameRate(this.config.FPS);
+
+        // Seed random
+        p5i.randomSeed(this.config.seed);
+
+        this.population = new Population(this.config.lifeSpan, this.config.popSize);
     }
 
     update() {
@@ -78,10 +121,10 @@ class World {
                 if (rocket.crashed || rocket.completed) {
                     deathCount++;
                 }
-            }            
+            }
 
             this.count++;
-            if (this.count == this.config.lifespan || deathCount == this.config.popsize) {
+            if (this.count == this.config.lifeSpan || deathCount == this.config.popSize) {
                 this.generation++;
                 this.population.evaluate(this.target);
                 this.population.selection();
@@ -93,7 +136,7 @@ class World {
     render() {
         p5i.background(0);
 
-        this.lifeP.html(
+        this.debugDiv.html(
             'Generation: ' + this.generation +
             '<br/> World time: ' + this.count +
             '<br/> Deaths: ' + this.population.rockets.reduce((crashes, rocket) => { return crashes + (rocket.crashed ? 1 : 0); }, 0) +
@@ -105,7 +148,7 @@ class World {
                 let rocket = this.population.rockets[i];
                 rocket.render();
             }
-        }        
+        }
 
         p5i.fill(255);
         p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
