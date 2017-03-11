@@ -21,7 +21,7 @@ class World {
         };
         this.obstacle = {
             x: 100,
-            y: 350,
+            y: 300,
             width: 400,
             height: 10
         };
@@ -33,7 +33,11 @@ class World {
         p5i.frameRate(this.config.FPS);
 
         // Debug element
-        this.lifeP = p5i.createP();
+        this.debugDiv = p5i.select('#debug');        
+        this.debugDiv.style('width', this.config.width.toString() + 'px');
+        this.debugDiv.style('height', this.config.height.toString() + 'px');        
+        this.lifeP = p5i.createDiv('');
+        this.lifeP.parent(this.debugDiv);
 
         // Seed random
         p5i.randomSeed(10);
