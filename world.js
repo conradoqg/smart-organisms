@@ -37,17 +37,17 @@ class World {
         p5i.createElement('label', 'Seed: ').parent(this.settingsDiv);
         this.seedInput = p5i.createInput(this.config.seed);
         this.seedInput.size(30);
-        this.seedInput.parent(this.settingsDiv);        
+        this.seedInput.parent(this.settingsDiv);
 
         p5i.createElement('label', 'Pop Size: ').parent(this.settingsDiv);
         this.popSizeInput = p5i.createInput(this.config.popSize);
         this.popSizeInput.size(30);
-        this.popSizeInput.parent(this.settingsDiv);        
+        this.popSizeInput.parent(this.settingsDiv);
 
         p5i.createElement('label', 'Life Span: ').parent(this.settingsDiv);
         this.lifeSpanInput = p5i.createInput(this.config.lifeSpan);
         this.lifeSpanInput.size(30);
-        this.lifeSpanInput.parent(this.settingsDiv);        
+        this.lifeSpanInput.parent(this.settingsDiv);
 
         var controlContainer = p5i.select('#controlContainer');
         controlContainer.style('width', this.config.width.toString() + 'px');
@@ -88,6 +88,7 @@ class World {
         this.count = 0;
         this.generation = 1;
         this.paused = false;
+        this.statistics = {};
     }
 
     setP5InitialState() {
@@ -128,10 +129,17 @@ class World {
                 }
 
                 this.count++;
-                if (this.count == this.config.lifeSpan || deathCount == this.config.popSize) {
-                    this.generation++;
+                if (this.count == this.config.lifeSpan || deathCount == this.config.popSize) {                    
+                    // Statistics
+                    const hits = this.population.rockets.reduce((hits, rocket) => { return hits + (rocket.completed ? 1 : 0); }, 0);
+                    this.statistics.avgLifeSpans = this.population.rockets.reduce((lifeSpan, rocket) => { return lifeSpan + rocket.lifeSpan; }, 0) / this.population.rockets.length;
+                    this.statistics.avgDistance = this.population.rockets.reduce((distance, rocket) => { return distance + rocket.distanceTo(this.target); }, 0) / this.population.rockets.length;
+                    if (hits > 0 && typeof (this.statistics.firstHit) == 'undefined') this.statistics.firstHit = this.generation;
+                    if (hits > 1 && typeof (this.statistics.secondHit) == 'undefined') this.statistics.secondHit = this.generation;
+
                     this.population.evaluate(this.target);
                     this.population.selection();
+                    this.generation++;
                     this.count = 0;
                 }
             }
@@ -146,7 +154,11 @@ class World {
                 'Generation: ' + this.generation +
                 '<br/> World time: ' + this.count +
                 '<br/> Deaths: ' + this.population.rockets.reduce((crashes, rocket) => { return crashes + (rocket.crashed ? 1 : 0); }, 0) +
-                '<br/> Hits: ' + this.population.rockets.reduce((hits, rocket) => { return hits + (rocket.completed ? 1 : 0); }, 0)
+                '<br/> Hits: ' + this.population.rockets.reduce((hits, rocket) => { return hits + (rocket.completed ? 1 : 0); }, 0) +
+                (typeof (this.statistics.avgLifeSpans) != 'undefined' ? '<br/> Avg Life Span: ' + this.statistics.avgLifeSpans.toFixed(2) : '') +
+                (typeof (this.statistics.avgDistance) != 'undefined' ? '<br/> Avg Distance: ' + this.statistics.avgDistance.toFixed(2) : '') +
+                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> First Hit: Gen ' + this.statistics.firstHit : '') +
+                (typeof (this.statistics.secondHit) != 'undefined' ? '<br/> Second Hit: Gen ' + this.statistics.secondHit : '')
             );
 
             if (this.population) {
