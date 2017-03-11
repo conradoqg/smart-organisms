@@ -1,4 +1,5 @@
 const DNA = require('./dna.js');
+const FitnessMeasurer = require('./fitnessMeasurer.js');
 
 class Organism {
     constructor(dnaOrGeneAmount) {
@@ -13,15 +14,7 @@ class Organism {
     }
 
     calcFitness(target) {
-        var d = this.distanceTo(target);
-
-        this.fitness = p5i.map(d, 0, p5i.width, p5i.width, 0);
-        if (this.completed) {
-            this.fitness *= 10;
-        }
-        if (this.crashed) {
-            this.fitness /= 10;
-        }
+        this.fitness = FitnessMeasurer.method1(this, target);        
     }
 
     mate(partner) {

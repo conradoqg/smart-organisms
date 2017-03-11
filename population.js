@@ -12,16 +12,14 @@ class Population {
     }
 
     evaluate(target) {
-        var maxfit = 0;
+        var maxFit = 0;
         for (var i = 0; i < this.popSize; i++) {
             this.rockets[i].calcFitness(target);
-            if (this.rockets[i].fitness > maxfit) {
-                maxfit = this.rockets[i].fitness;
-            }
+            maxFit  = Math.max(this.rockets[i].fitness, maxFit);            
         }
 
         for (var i = 0; i < this.popSize; i++) {
-            this.rockets[i].fitness /= maxfit;
+            this.rockets[i].fitness /= maxFit;
         }
 
         this.matingpool = [];
