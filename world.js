@@ -35,6 +35,9 @@ class World {
         // Debug element
         this.lifeP = p5i.createP();
 
+        // Seed random
+        p5i.randomSeed(10);
+
         // p5        
         p5i.draw = this.render.bind(this);
         let loop = () => {

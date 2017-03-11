@@ -13,7 +13,7 @@ class DNA {
         var mid = p5i.floor(p5i.random(this.genes.length));
         for (var i = 0; i < this.genes.length; i++) {
             if (i > mid) {
-                newgenes[i] = this.genes[i];
+                newgenes[i] = this.genes[i];        
             } else {
                 newgenes[i] = partner.genes[i];
             }
@@ -29,7 +29,7 @@ class DNA {
     }
 
     createNewGene() {
-        let newGene = p5.Vector.random2D();
+        let newGene = p5i.createVector(p5i.random(-1,1), p5i.random(-1,1));
         newGene.setMag(this.maxforce);
         return newGene;
     }
