@@ -5,9 +5,10 @@ class World {
         this.config = {
             width: 600,
             height: 600,
-            FPS: 30,
+            FPS: 30,            
             popsize: 100,
-            lifespan: 1600
+            lifespan: 1600,
+            seed: 10
         };
         this.population = null;
         this.lifeP = null;
@@ -39,7 +40,7 @@ class World {
         this.lifeP.parent(this.debugDiv);
 
         // Seed random
-        p5i.randomSeed(10);
+        p5i.randomSeed(this.config.seed);
 
         // p5        
         p5i.draw = this.render.bind(this);
