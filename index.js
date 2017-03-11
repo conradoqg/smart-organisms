@@ -5,13 +5,12 @@
  *  
  */
 const World = require('./world.js');
-const canvasID = 'canvas';
 
-const word = new World(canvasID);
+const word = new World();
 
 p5.disableFriendlyErrors = true;
 
 new p5((p5iinstance) => {
     p5iinstance.setup = word.setup.bind(word);
     window.p5i = p5iinstance;
-}, canvasID);
+}, 'canvas');

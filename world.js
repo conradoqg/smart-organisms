@@ -1,12 +1,11 @@
 const Population = require('./population.js');
 
 class World {
-    constructor(canvasElementID) {
+    constructor() {
         this.config = {
             width: 600,
             height: 600,
             FPS: 30,
-            canvasElementID: canvasElementID,
             popsize: 100,
             lifespan: 1600
         };
