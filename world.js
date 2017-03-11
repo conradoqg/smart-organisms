@@ -129,11 +129,15 @@ class World {
                 }
 
                 this.count++;
-                if (this.count == this.config.lifeSpan || deathCount == this.config.popSize) {                    
+                if (this.count == this.config.lifeSpan || deathCount == this.config.popSize) {
                     // Statistics
                     const hits = this.population.rockets.reduce((hits, rocket) => { return hits + (rocket.completed ? 1 : 0); }, 0);
+
                     this.statistics.avgLifeSpans = this.population.rockets.reduce((lifeSpan, rocket) => { return lifeSpan + rocket.lifeSpan; }, 0) / this.population.rockets.length;
                     this.statistics.avgDistance = this.population.rockets.reduce((distance, rocket) => { return distance + rocket.distanceTo(this.target); }, 0) / this.population.rockets.length;
+                    this.statistics.avgLifeSpansHist = (typeof(this.statistics.avgLifeSpansHist) != 'undefined' ? [...this.statistics.avgLifeSpansHist, this.statistics.avgLifeSpans.toFixed(2)] : [this.statistics.avgLifeSpans.toFixed(2)]);
+                    this.statistics.avgDistanceHist = (typeof(this.statistics.avgDistanceHist) != 'undefined' ? [...this.statistics.avgDistanceHist, this.statistics.avgDistance.toFixed(2)] : [this.statistics.avgDistance.toFixed(2)]);
+
                     if (hits > 0 && typeof (this.statistics.firstHit) == 'undefined') this.statistics.firstHit = this.generation;
                     if (hits > 1 && typeof (this.statistics.secondHit) == 'undefined') this.statistics.secondHit = this.generation;
 
@@ -155,8 +159,8 @@ class World {
                 '<br/> World time: ' + this.count +
                 '<br/> Deaths: ' + this.population.rockets.reduce((crashes, rocket) => { return crashes + (rocket.crashed ? 1 : 0); }, 0) +
                 '<br/> Hits: ' + this.population.rockets.reduce((hits, rocket) => { return hits + (rocket.completed ? 1 : 0); }, 0) +
-                (typeof (this.statistics.avgLifeSpans) != 'undefined' ? '<br/> Avg Life Span: ' + this.statistics.avgLifeSpans.toFixed(2) : '') +
-                (typeof (this.statistics.avgDistance) != 'undefined' ? '<br/> Avg Distance: ' + this.statistics.avgDistance.toFixed(2) : '') +
+                (typeof (this.statistics.avgLifeSpans) != 'undefined' ? '<br/> Avg Life Span: ' + this.statistics.avgLifeSpans.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgLifeSpansHist.join(',') + '"/>' : '') +
+                (typeof (this.statistics.avgDistance) != 'undefined' ? '<br/> Avg Distance: ' + this.statistics.avgDistance.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgDistanceHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgDistanceHist.join(',') + '"/>' : '') +
                 (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> First Hit: Gen ' + this.statistics.firstHit : '') +
                 (typeof (this.statistics.secondHit) != 'undefined' ? '<br/> Second Hit: Gen ' + this.statistics.secondHit : '')
             );
