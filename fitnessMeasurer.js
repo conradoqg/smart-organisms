@@ -94,7 +94,7 @@ class FitnessMeasurer {
         }
 
         // Do a A* search from the starting point to the target point
-        var result = astar.search(graph, start, end, { closest: true, heuristic: astar.heuristics.diagonal });
+        var result = astar.search(graph, start, end, { closest: true });
 
         // Draw found path (for debuggin purposes)
         p5i.push();
