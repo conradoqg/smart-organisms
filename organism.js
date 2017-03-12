@@ -5,18 +5,18 @@ class Organism {
     constructor(dnaOrGeneAmount) {
         this.pos = p5i.createVector(p5i.width / 2, p5i.height);
         this.initialPos = this.pos.copy();
-        this.size = { width: 25, height: 5};
+        this.size = { width: 25, height: 5 };
         this.vel = p5i.createVector();
         this.acc = p5i.createVector();
         this.completed = false;
         this.crashed = false;
-        this.dna = (typeof(dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
+        this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
         this.fitness = 0;
         this.lifeSpan = 0;
     }
 
     calcFitness(target) {
-        this.fitness = FitnessMeasurer.method2(this, target);        
+        this.fitness = FitnessMeasurer.method2(this, target);
     }
 
     mate(partner) {

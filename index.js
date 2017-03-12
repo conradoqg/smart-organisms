@@ -1,5 +1,5 @@
 /**
- * Smart rockets.
+ * Smart organisms.
  * 
  * based on the work of Daniel Shiffman: http://codingtra.in
  *  

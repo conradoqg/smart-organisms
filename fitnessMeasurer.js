@@ -28,13 +28,13 @@ class FitnessMeasurer {
 
         // Weights
         const distanceWeight = 10;
-        const lifeSpaneWeight = 5;        
+        const lifeSpaneWeight = 5;
 
         let distanceFitness = (100 - p5i.map(distance, minDistance, maxDistance, 0, 100));
         let lifeSpanFitness = p5i.map(lifeSpan, minLifespan, maxLifespan, 0, 100);
         let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
 
-        if (organism.completed) result *= 10;                
+        if (organism.completed) result *= 10;
 
         return result;
     }
