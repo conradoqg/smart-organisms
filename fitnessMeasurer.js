@@ -22,7 +22,7 @@ class FitnessMeasurer {
             p5i.createVector(p5i.width, p5i.height).dist(organism.initialPos)
         );
         const minDistance = 0;
-        let distance = this.astartDistance(organism.pos, target);
+        let distance = this.aStarDistance(organism.pos, target);
         distance = (distance == null ? maxDistance : distance);
 
         // Lifespane constants
@@ -47,7 +47,7 @@ class FitnessMeasurer {
         return result;
     }
 
-    static astartDistance(object, target) {
+    static aStarDistance(object, target) {
         // Cache here is important because it takes a while to create a Graph
         let graph;
         if (cachedCleanGraph == null) {
@@ -70,9 +70,9 @@ class FitnessMeasurer {
         var start = graph.grid[objectX][objectY];
         var end = graph.grid[targetX][targetY];
 
-        // If the start point is a wall, find the nearest non-wall node
+        // If the start point is a wall, find the nearest nonwall node
         if (start.isWall()) {
-            let findClosestNotWall = (nodes) => {
+            let findClosestNonwall = (nodes) => {
                 let nodeFound = null;
                 for (let i = 0; i < nodes.length; i++) {
                     if (!nodes[i].isWall()) {
@@ -85,12 +85,12 @@ class FitnessMeasurer {
                     for (let i = 0; i < nodes.length; i++) {
                         neighbors = neighbors.concat(graph.neighbors(nodes[i]));
                     }
-                    return findClosestNotWall(neighbors);
+                    return findClosestNonwall(neighbors);
                 }
 
                 return nodeFound;
             };
-            start = findClosestNotWall(graph.neighbors(start));
+            start = findClosestNonwall(graph.neighbors(start));
         }
 
         // Do a A* search from the starting point to the target point

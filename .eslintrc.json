@@ -15,7 +15,9 @@
     "globals": {
         "p5": true,
         "p5i": true,
-        "store": true
+        "store": true,
+        "astar": true,
+        "Graph": true
     },
     "rules": {
         "no-const-assign": "warn",
