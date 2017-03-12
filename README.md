@@ -1,5 +1,5 @@
 # Smart organisms
-> A mini project aimed to learn more about the [p5.js](http://p5js.org) library and genetic algorithm.
+> A nano project aimed to learn more about the [p5.js](http://p5js.org) library and genetic algorithm.
 
 Based on the work of Daniel Shiffman: http://codingtra.in
 
