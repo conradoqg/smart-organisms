@@ -20,16 +20,17 @@ class World {
         // Canvas
         p5i.createCanvas(this.config.width, this.config.height);
 
+        // p5 Initial State
         this.setP5InitialState();
 
         // Debug element
-        var debugContainer = p5i.select('#debugContainer');
+        let debugContainer = p5i.select('#debugContainer');
         debugContainer.style('width', this.config.width.toString() + 'px');
         debugContainer.style('height', this.config.height.toString() + 'px');
 
         this.debugDiv = p5i.select('#debug');
 
-        var settingsContainer = p5i.select('#settingsContainer');
+        let settingsContainer = p5i.select('#settingsContainer');
         settingsContainer.style('width', this.config.width.toString() + 'px');
         settingsContainer.style('height', this.config.height.toString() + 'px');
 
@@ -49,7 +50,7 @@ class World {
         this.lifeSpanInput.size(30);
         this.lifeSpanInput.parent(this.settingsDiv);
 
-        var controlContainer = p5i.select('#controlContainer');
+        let controlContainer = p5i.select('#controlContainer');
         controlContainer.style('width', this.config.width.toString() + 'px');
         controlContainer.style('height', this.config.height.toString() + 'px');
 
@@ -68,6 +69,8 @@ class World {
 
         // p5        
         p5i.draw = this.render.bind(this);
+
+        // Main update loop
         let loop = () => {
             this.update();
             setTimeout(loop);
@@ -85,7 +88,7 @@ class World {
             seed: (seed == null ? 10 : parseInt(seed))
         };
         this.population = null;
-        this.count = 0;
+        this.lifeSpanTimer = 0;
         this.generation = 1;
         this.paused = false;
         this.statistics = {};
@@ -104,11 +107,20 @@ class World {
     update() {
         if (!this.paused) {
             if (this.population) {
-                let deathCount = 0;
+                this.lifeSpanTimer++;
+
+                // Statistics counters
+                let deaths = 0;
+                let hits = 0;
+                let lifeSpanSum = 0;
+                let distanceSum = 0;
+
                 // Update organisms
-                for (var i = 0; i < this.population.organisms.length; i++) {
+                for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
-                    organism.update(this.count);
+                    organism.update(this.lifeSpanTimer);
+
+                    // Target
                     if (organism.collidesCircle(this.target)) {
                         organism.completed = true;
                     }
@@ -123,19 +135,19 @@ class World {
                         organism.crashed = true;
                     }
 
-                    if (organism.crashed || organism.completed) {
-                        deathCount++;
-                    }
-                }
-
-                this.count++;
-                if (this.count == this.config.lifeSpan || deathCount == this.config.popSize) {
                     // Statistics
-                    const deaths = this.population.organisms.reduce((crashes, organism) => { return crashes + (organism.crashed ? 1 : 0); }, 0);
-                    const hits = this.population.organisms.reduce((hits, organism) => { return hits + (organism.completed ? 1 : 0); }, 0);
+                    if (organism.crashed) deaths++;
+                    if (organism.completed) hits++;
 
-                    this.statistics.avgLifeSpans = this.population.organisms.reduce((lifeSpan, organism) => { return lifeSpan + organism.lifeSpan; }, 0) / this.population.organisms.length;
-                    this.statistics.avgDistance = this.population.organisms.reduce((distance, organism) => { return distance + organism.distanceTo(this.target); }, 0) / this.population.organisms.length;
+                    lifeSpanSum += organism.lifeSpan;
+                    distanceSum += organism.distanceTo(this.target);
+                    this.statistics.avgLifeSpans = lifeSpanSum / i;
+                    this.statistics.avgDistance = distanceSum / i;
+                }
+                
+                // Generates a new population if the generation run out of time
+                if (this.lifeSpanTimer == this.config.lifeSpan || (deaths + hits) == this.config.popSize) {
+                    // Historic statistics
                     this.statistics.avgLifeSpansHist = (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? [...this.statistics.avgLifeSpansHist, this.statistics.avgLifeSpans.toFixed(2)] : [this.statistics.avgLifeSpans.toFixed(2)]);
                     this.statistics.avgDistanceHist = (typeof (this.statistics.avgDistanceHist) != 'undefined' ? [...this.statistics.avgDistanceHist, this.statistics.avgDistance.toFixed(2)] : [this.statistics.avgDistance.toFixed(2)]);
                     this.statistics.deathsHist = (typeof (this.statistics.deathsHist) != 'undefined' ? [...this.statistics.deathsHist, deaths] : [deaths]);
@@ -143,10 +155,11 @@ class World {
 
                     if (hits > 0 && typeof (this.statistics.firstHit) == 'undefined') this.statistics.firstHit = this.generation;
 
+                    // Population evaluation and selection
                     this.population.evaluate(this.target);
                     this.population.selection();
                     this.generation++;
-                    this.count = 0;
+                    this.lifeSpanTimer = 0;
                 }
             }
         }
@@ -158,16 +171,16 @@ class World {
 
             this.debugDiv.html(
                 'Generation: ' + this.generation +
-                '<br/> World time: ' + this.count +
+                '<br/> Timer: ' + this.lifeSpanTimer +
                 '<br/> Deaths: ' + this.population.organisms.reduce((crashes, organism) => { return crashes + (organism.crashed ? 1 : 0); }, 0) + ' ' + (typeof (this.statistics.deathsHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.deathsHist.slice(-250).join(',') + '"/>' : '') +
                 '<br/> Hits: ' + this.population.organisms.reduce((hits, organism) => { return hits + (organism.completed ? 1 : 0); }, 0) + ' ' + (typeof (this.statistics.hitsHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.hitsHist.slice(-250).join(',') + '"/>' : '') +
                 (typeof (this.statistics.avgLifeSpans) != 'undefined' ? '<br/> Avg Life Span: ' + this.statistics.avgLifeSpans.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgLifeSpansHist.slice(-250).join(',') + '"/>' : '') +
                 (typeof (this.statistics.avgDistance) != 'undefined' ? '<br/> Avg Distance: ' + this.statistics.avgDistance.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgDistanceHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgDistanceHist.slice(-250).join(',') + '"/>' : '') +
-                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> First Hit: Gen ' + this.statistics.firstHit : '')
+                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> 1st Hit: Gen ' + this.statistics.firstHit : '')
             );
 
             if (this.population) {
-                for (var i = 0; i < this.population.organisms.length; i++) {
+                for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
                     organism.render();
                 }

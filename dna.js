@@ -3,32 +3,35 @@ class DNA {
         this.genes = [];
         this.genesAmount = genesAmount;
         this.maxforce = 0.2;
-        for (var i = 0; i < genesAmount; i++) {
+        for (let i = 0; i < genesAmount; i++) {
             this.genes[i] = this.createNewGene();
         }
     }
 
     crossover(partner) {
-        var newgenes = [];
-        var mid = p5i.floor(p5i.random(this.genes.length));
-        for (var i = 0; i < this.genes.length; i++) {
+        // Selects a random mid point position and cross the dna genes from that mid point
+        let newGenes = [];
+        let mid = p5i.floor(p5i.random(this.genes.length));
+        for (let i = 0; i < this.genes.length; i++) {
+            // Set the gene from itself or form its partner depending on the mid point.
             if (i > mid) {
-                newgenes[i] = this.genes[i];        
+                newGenes[i] = this.genes[i];        
             } else {
-                newgenes[i] = partner.genes[i];
+                newGenes[i] = partner.genes[i];
             }
 
-            // 0.01 mutation chance
+            // Mutate the gene which will bring diversity to the organism. 0.01 mutation chance
             if (p5i.random(1) < 0.01) {
-                newgenes[i] = this.createNewGene();
+                newGenes[i] = this.createNewGene();
             }
         }
         const newDNA = new DNA(this.genesAmount);
-        newDNA.genes = newgenes;
+        newDNA.genes = newGenes;
         return newDNA;
     }
 
     createNewGene() {
+        // Creates a new gene randomly
         let newGene = p5i.createVector(p5i.random(-1,1), p5i.random(-1,1));
         newGene.setMag(this.maxforce);
         return newGene;

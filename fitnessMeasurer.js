@@ -1,6 +1,6 @@
 class FitnessMeasurer {
     static method1(organism, target) {
-        var invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
+        let invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
 
         if (organism.completed) {
             return invertedDistance *= 10;
@@ -30,11 +30,15 @@ class FitnessMeasurer {
         const distanceWeight = 10;
         const lifeSpaneWeight = 5;
 
+        // Calculates fitness generating a number between the min and max
         let distanceFitness = (100 - p5i.map(distance, minDistance, maxDistance, 0, 100));
         let lifeSpanFitness = p5i.map(lifeSpan, minLifespan, maxLifespan, 0, 100);
+
+        // Apply weights to the calculated fitness
         let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
 
-        if (organism.completed) result *= 10;
+        // Apply extra weight when the organism hits the goal
+        if (organism.completed) result *= 5;
 
         return result;
     }

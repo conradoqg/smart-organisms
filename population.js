@@ -4,42 +4,46 @@ class Population {
     constructor(geneAmount, popSize) {
         this.organisms = [];
         this.popSize = popSize;
-        this.matingpool = [];
+        this.matingPool = [];
 
-        for (var i = 0; i < this.popSize; i++) {
+        for (let i = 0; i < this.popSize; i++) {
             this.organisms[i] = new Organism(geneAmount);
         }
     }
 
     evaluate(target) {
-        var maxFit = 0;
-        for (var i = 0; i < this.popSize; i++) {
+        // Find max fitness
+        let maxFit = 0;        
+        for (let i = 0; i < this.popSize; i++) {
             this.organisms[i].calcFitness(target);
             maxFit = Math.max(this.organisms[i].fitness, maxFit);
         }
 
-        for (var i = 0; i < this.popSize; i++) {
+        // Map fitness between 0 and 1.        
+        for (let i = 0; i < this.popSize; i++) {
             this.organisms[i].fitness /= maxFit;
         }
 
-        this.matingpool = [];
-        for (var i = 0; i < this.popSize; i++) {
-            var n = this.organisms[i].fitness * 100;
-            for (var j = 0; j < n; j++) {
-                this.matingpool.push(this.organisms[i]);
+        // Adds the organisms N times to mating pool according its fitness proportional value. Multiplies N by 100 to give a minimum of 1 options for the lowest ranked organism
+        this.matingPool = [];
+        for (let i = 0; i < this.popSize; i++) {
+            let n = this.organisms[i].fitness * 100;
+            for (let j = 0; j < n; j++) {
+                this.matingPool.push(this.organisms[i]);
             }
         }
     }
 
     selection() {
-        var neworganisms = [];
-        for (var i = 0; i < this.organisms.length; i++) {
-            const parentA = p5i.random(this.matingpool);
-            const parentB = p5i.random(this.matingpool);
+        // Randomly choose two partners from mating pool and mate them
+        let newOrganisms = [];
+        for (let i = 0; i < this.organisms.length; i++) {
+            const parentA = p5i.random(this.matingPool);
+            const parentB = p5i.random(this.matingPool);
             const child = parentA.mate(parentB);
-            neworganisms[i] = child;
+            newOrganisms[i] = child;
         }
-        this.organisms = neworganisms;
+        this.organisms = newOrganisms;
     }
 }
 
