@@ -4,32 +4,35 @@ class DNA {
         this.genes = [];
         this.genesAmount = genesAmount;
         this.maxforce = 0.2;
-        for (var i = 0; i < genesAmount; i++) {
+        for (let i = 0; i < genesAmount; i++) {
             this.genes[i] = this.createNewGene();
         }
     }
 
     crossover(partner) {
-        var newgenes = [];
-        var mid = p5i.floor(p5i.random(this.genes.length));
-        for (var i = 0; i < this.genes.length; i++) {
+        // Selects a random mid point position and cross the dna genes from that mid point
+        let newGenes = [];
+        let mid = p5i.floor(p5i.random(this.genes.length));
+        for (let i = 0; i < this.genes.length; i++) {
+            // Set the gene from itself or form its partner depending on the mid point.
             if (i > mid) {
-                newgenes[i] = this.genes[i];        
+                newGenes[i] = this.genes[i];        
             } else {
-                newgenes[i] = partner.genes[i];
+                newGenes[i] = partner.genes[i];
             }
 
-            // 0.01 mutation chance
+            // Mutate the gene which will bring diversity to the organism. 0.01 mutation chance
             if (p5i.random(1) < 0.01) {
-                newgenes[i] = this.createNewGene();
+                newGenes[i] = this.createNewGene();
             }
         }
         const newDNA = new DNA(this.genesAmount);
-        newDNA.genes = newgenes;
+        newDNA.genes = newGenes;
         return newDNA;
     }
 
     createNewGene() {
+        // Creates a new gene randomly
         let newGene = p5i.createVector(p5i.random(-1,1), p5i.random(-1,1));
         newGene.setMag(this.maxforce);
         return newGene;
@@ -38,9 +41,12 @@ class DNA {
 
 module.exports = DNA;
 },{}],2:[function(require,module,exports){
+let bitMap = null;
+let cachedCleanGraph = null;
+
 class FitnessMeasurer {
     static method1(organism, target) {
-        var invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
+        let invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
 
         if (organism.completed) {
             return invertedDistance *= 10;
@@ -59,7 +65,8 @@ class FitnessMeasurer {
             p5i.createVector(p5i.width, p5i.height).dist(organism.initialPos)
         );
         const minDistance = 0;
-        const distance = organism.pos.dist(p5i.createVector(target.x, target.y));
+        let distance = this.astartDistance(organism.pos, target);
+        distance = (distance == null ? maxDistance : distance);
 
         // Lifespane constants
         const minLifespan = 0;
@@ -68,16 +75,84 @@ class FitnessMeasurer {
 
         // Weights
         const distanceWeight = 10;
-        const lifeSpaneWeight = 5;        
+        const lifeSpaneWeight = 5;
 
+        // Calculates fitness generating a number between the min and max
         let distanceFitness = (100 - p5i.map(distance, minDistance, maxDistance, 0, 100));
         let lifeSpanFitness = p5i.map(lifeSpan, minLifespan, maxLifespan, 0, 100);
+
+        // Apply weights to the calculated fitness
         let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
 
-        if (organism.completed) result *= 10;                
+        // Apply extra weight when the organism hits the goal
+        if (organism.completed) result *= 10;
 
         return result;
     }
+
+    static astartDistance(object, target) {
+        // Cache here is important because it takes a while to create a Graph
+        let graph;
+        if (cachedCleanGraph == null) {
+            cachedCleanGraph = new Graph(bitMap);
+        } else {
+            // Clean graph for next execution
+            cachedCleanGraph.init();
+            cachedCleanGraph.cleanDirty();
+        }
+        graph = cachedCleanGraph;
+
+        // Limits X and Y for both object according the size of the bitmap
+        let objectX = Math.min(Math.max(Math.round(object.x), 0), bitMap[0].length - 1);
+        let objectY = Math.min(Math.max(Math.round(object.y), 0), bitMap.length - 1);
+
+        let targetX = Math.min(Math.max(Math.round(target.x), 0), bitMap[0].length - 1);
+        let targetY = Math.min(Math.max(Math.round(target.y), 0), bitMap.length - 1);
+
+        // Setup the start and end points;
+        var start = graph.grid[objectX][objectY];
+        var end = graph.grid[targetX][targetY];
+
+        // If the start point is a wall, find the nearest non-wall node
+        if (start.isWall()) {
+            let findClosestNotWall = (nodes) => {
+                let nodeFound = null;
+                for (let i = 0; i < nodes.length; i++) {
+                    if (!nodes[i].isWall()) {
+                        nodeFound = nodes[i];
+                    }
+                }
+
+                if (!nodeFound) {
+                    let neighbors = [];
+                    for (let i = 0; i < nodes.length; i++) {
+                        neighbors = neighbors.concat(graph.neighbors(nodes[i]));
+                    }
+                    return findClosestNotWall(neighbors);
+                }
+
+                return nodeFound;
+            };
+            start = findClosestNotWall(graph.neighbors(start));
+        }
+
+        // Do a A* search from the starting point to the target point
+        var result = astar.search(graph, start, end, { closest: true, heuristic: astar.heuristics.diagonal });
+
+        // Draw found path (for debuggin purposes)
+        p5i.push();
+        p5i.stroke('yellow');
+        result.forEach((node) => {
+            p5i.point(node.x, node.y);
+        });
+        p5i.pop();
+
+        let distance = (result.length == 0 ? null : result.length);
+        return distance;
+    }
+
+    static get bitMap() { return bitMap; }
+    static set bitMap(value) { bitMap = value; }
 }
 
 module.exports = FitnessMeasurer;
@@ -106,18 +181,18 @@ class Organism {
     constructor(dnaOrGeneAmount) {
         this.pos = p5i.createVector(p5i.width / 2, p5i.height);
         this.initialPos = this.pos.copy();
-        this.size = { width: 25, height: 5};
+        this.size = { width: 25, height: 5 };
         this.vel = p5i.createVector();
         this.acc = p5i.createVector();
         this.completed = false;
         this.crashed = false;
-        this.dna = (typeof(dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
+        this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
         this.fitness = 0;
         this.lifeSpan = 0;
     }
 
     calcFitness(target) {
-        this.fitness = FitnessMeasurer.method2(this, target);        
+        this.fitness = FitnessMeasurer.method2(this, target);
     }
 
     mate(partner) {
@@ -125,10 +200,10 @@ class Organism {
         return new Organism(childDNA);
     }
 
-    update(count) {
-        this.acc.add(this.dna.genes[count]);
+    update(lifeSpanTimer) {
         if (!this.completed && !this.crashed) {
-            this.lifeSpan = count;
+            this.lifeSpan = lifeSpanTimer;
+            this.acc.add(this.dna.genes[lifeSpanTimer]);
             this.vel.add(this.acc);
             this.pos.add(this.vel);
             this.acc.mult(0);
@@ -166,50 +241,55 @@ const Organism = require('./organism.js');
 
 class Population {
     constructor(geneAmount, popSize) {
-        this.organisms = [];   
-        this.popSize = popSize;     
-        this.matingpool = [];
+        this.organisms = [];
+        this.popSize = popSize;
+        this.matingPool = [];
 
-        for (var i = 0; i < this.popSize; i++) {
+        for (let i = 0; i < this.popSize; i++) {
             this.organisms[i] = new Organism(geneAmount);
         }
     }
 
     evaluate(target) {
-        var maxFit = 0;
-        for (var i = 0; i < this.popSize; i++) {
+        // Find max fitness
+        let maxFit = 0;
+        for (let i = 0; i < this.popSize; i++) {
             this.organisms[i].calcFitness(target);
-            maxFit  = Math.max(this.organisms[i].fitness, maxFit);            
+            maxFit = Math.max(this.organisms[i].fitness, maxFit);
         }
 
-        for (var i = 0; i < this.popSize; i++) {
+        // Map fitness between 0 and 1.        
+        for (let i = 0; i < this.popSize; i++) {
             this.organisms[i].fitness /= maxFit;
         }
 
-        this.matingpool = [];
-        for (var i = 0; i < this.popSize; i++) {
-            var n = this.organisms[i].fitness * 100;
-            for (var j = 0; j < n; j++) {
-                this.matingpool.push(this.organisms[i]);
+        // Adds the organisms N times to mating pool according its fitness proportional value. Multiplies N by 100 to give a minimum of 1 options for the lowest ranked organism
+        this.matingPool = [];
+        for (let i = 0; i < this.popSize; i++) {
+            let n = this.organisms[i].fitness * 100;
+            for (let j = 0; j < n; j++) {
+                this.matingPool.push(this.organisms[i]);
             }
         }
     }
 
     selection() {
-        var neworganisms = [];
-        for (var i = 0; i < this.organisms.length; i++) {
-            const parentA = p5i.random(this.matingpool);
-            const parentB = p5i.random(this.matingpool);
+        // Randomly choose two partners from mating pool and mate them
+        let newOrganisms = [];
+        for (let i = 0; i < this.organisms.length; i++) {
+            const parentA = p5i.random(this.matingPool);
+            const parentB = p5i.random(this.matingPool);
             const child = parentA.mate(parentB);
-            neworganisms[i] = child;
+            newOrganisms[i] = child;
         }
-        this.organisms = neworganisms;
+        this.organisms = newOrganisms;
     }
 }
 
 module.exports = Population;
 },{"./organism.js":4}],6:[function(require,module,exports){
 const Population = require('./population.js');
+const FitnessMeasurer = require('./fitnessMeasurer.js');
 
 class World {
     constructor() {
@@ -230,17 +310,19 @@ class World {
     setup() {
         // Canvas
         p5i.createCanvas(this.config.width, this.config.height);
+        p5i.pixelDensity(1);
 
+        // p5 Initial State
         this.setP5InitialState();
 
         // Debug element
-        var debugContainer = p5i.select('#debugContainer');
+        let debugContainer = p5i.select('#debugContainer');
         debugContainer.style('width', this.config.width.toString() + 'px');
         debugContainer.style('height', this.config.height.toString() + 'px');
 
         this.debugDiv = p5i.select('#debug');
 
-        var settingsContainer = p5i.select('#settingsContainer');
+        let settingsContainer = p5i.select('#settingsContainer');
         settingsContainer.style('width', this.config.width.toString() + 'px');
         settingsContainer.style('height', this.config.height.toString() + 'px');
 
@@ -260,7 +342,7 @@ class World {
         this.lifeSpanInput.size(30);
         this.lifeSpanInput.parent(this.settingsDiv);
 
-        var controlContainer = p5i.select('#controlContainer');
+        let controlContainer = p5i.select('#controlContainer');
         controlContainer.style('width', this.config.width.toString() + 'px');
         controlContainer.style('height', this.config.height.toString() + 'px');
 
@@ -279,6 +361,8 @@ class World {
 
         // p5        
         p5i.draw = this.render.bind(this);
+
+        // Main update loop
         let loop = () => {
             this.update();
             setTimeout(loop);
@@ -296,7 +380,7 @@ class World {
             seed: (seed == null ? 10 : parseInt(seed))
         };
         this.population = null;
-        this.count = 0;
+        this.lifeSpanTimer = 0;
         this.generation = 1;
         this.paused = false;
         this.statistics = {};
@@ -315,11 +399,20 @@ class World {
     update() {
         if (!this.paused) {
             if (this.population) {
-                let deathCount = 0;
+                this.lifeSpanTimer++;
+
+                // Statistics counters
+                let deaths = 0;
+                let hits = 0;
+                let lifeSpanSum = 0;
+                let distanceSum = 0;
+
                 // Update organisms
-                for (var i = 0; i < this.population.organisms.length; i++) {
+                for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
-                    organism.update(this.count);
+                    organism.update(this.lifeSpanTimer);
+
+                    // Target
                     if (organism.collidesCircle(this.target)) {
                         organism.completed = true;
                     }
@@ -334,19 +427,19 @@ class World {
                         organism.crashed = true;
                     }
 
-                    if (organism.crashed || organism.completed) {
-                        deathCount++;
-                    }
+                    // Statistics
+                    if (organism.crashed) deaths++;
+                    if (organism.completed) hits++;
+
+                    lifeSpanSum += organism.lifeSpan;
+                    distanceSum += organism.distanceTo(this.target);
+                    this.statistics.avgLifeSpans = lifeSpanSum / i;
+                    this.statistics.avgDistance = distanceSum / i;
                 }
 
-                this.count++;
-                if (this.count == this.config.lifeSpan || deathCount == this.config.popSize) {
-                    // Statistics
-                    const deaths = this.population.organisms.reduce((crashes, organism) => { return crashes + (organism.crashed ? 1 : 0); }, 0);
-                    const hits = this.population.organisms.reduce((hits, organism) => { return hits + (organism.completed ? 1 : 0); }, 0);
-
-                    this.statistics.avgLifeSpans = this.population.organisms.reduce((lifeSpan, organism) => { return lifeSpan + organism.lifeSpan; }, 0) / this.population.organisms.length;
-                    this.statistics.avgDistance = this.population.organisms.reduce((distance, organism) => { return distance + organism.distanceTo(this.target); }, 0) / this.population.organisms.length;
+                // Generates a new population if the generation run out of time
+                if (this.lifeSpanTimer == this.config.lifeSpan || (deaths + hits) == this.config.popSize) {
+                    // Historic statistics
                     this.statistics.avgLifeSpansHist = (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? [...this.statistics.avgLifeSpansHist, this.statistics.avgLifeSpans.toFixed(2)] : [this.statistics.avgLifeSpans.toFixed(2)]);
                     this.statistics.avgDistanceHist = (typeof (this.statistics.avgDistanceHist) != 'undefined' ? [...this.statistics.avgDistanceHist, this.statistics.avgDistance.toFixed(2)] : [this.statistics.avgDistance.toFixed(2)]);
                     this.statistics.deathsHist = (typeof (this.statistics.deathsHist) != 'undefined' ? [...this.statistics.deathsHist, deaths] : [deaths]);
@@ -354,10 +447,11 @@ class World {
 
                     if (hits > 0 && typeof (this.statistics.firstHit) == 'undefined') this.statistics.firstHit = this.generation;
 
+                    // Population evaluation and selection
                     this.population.evaluate(this.target);
                     this.population.selection();
                     this.generation++;
-                    this.count = 0;
+                    this.lifeSpanTimer = 0;
                 }
             }
         }
@@ -369,27 +463,53 @@ class World {
 
             this.debugDiv.html(
                 'Generation: ' + this.generation +
-                '<br/> World time: ' + this.count +
+                '<br/> Timer: ' + this.lifeSpanTimer +
                 '<br/> Deaths: ' + this.population.organisms.reduce((crashes, organism) => { return crashes + (organism.crashed ? 1 : 0); }, 0) + ' ' + (typeof (this.statistics.deathsHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.deathsHist.slice(-250).join(',') + '"/>' : '') +
                 '<br/> Hits: ' + this.population.organisms.reduce((hits, organism) => { return hits + (organism.completed ? 1 : 0); }, 0) + ' ' + (typeof (this.statistics.hitsHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.hitsHist.slice(-250).join(',') + '"/>' : '') +
                 (typeof (this.statistics.avgLifeSpans) != 'undefined' ? '<br/> Avg Life Span: ' + this.statistics.avgLifeSpans.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgLifeSpansHist.slice(-250).join(',') + '"/>' : '') +
                 (typeof (this.statistics.avgDistance) != 'undefined' ? '<br/> Avg Distance: ' + this.statistics.avgDistance.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgDistanceHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgDistanceHist.slice(-250).join(',') + '"/>' : '') +
-                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> First Hit: Gen ' + this.statistics.firstHit : '')
+                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> 1st Hit: Gen ' + this.statistics.firstHit : '')
             );
 
+            // Target
+            p5i.fill(p5i.color('red'));
+            p5i.ellipse(this.target.x, this.target.y, this.target.diameter);
+
+            // Obstacle
+            p5i.fill(255);
+            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
+
+            // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
+            if (FitnessMeasurer.bitMap == null) {
+                let bitMap = [];
+                p5i.loadPixels();
+                for (var x = 0; x < p5i.width; x++) {
+                    let row = Array(p5i.height);
+                    for (var y = 0; y < p5i.height; y++) {
+                        var index = (x + y * p5i.width) * 4;
+                        if (p5i.color(255).levels[0] == p5i.pixels[index] &&
+                            p5i.color(255).levels[1] == p5i.pixels[index + 1] &&
+                            p5i.color(255).levels[2] == p5i.pixels[index + 2] &&
+                            p5i.color(255).levels[3] == p5i.pixels[index + 3]) {
+                            row[y] = 0;
+                        } else {
+                            row[y] = 1;
+                        }
+                    }
+                    bitMap.push(row);
+                }
+                FitnessMeasurer.bitMap = bitMap;
+            }
+
             if (this.population) {
-                for (var i = 0; i < this.population.organisms.length; i++) {
+                for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
                     organism.render();
                 }
             }
-
-            p5i.fill(255);
-            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
-            p5i.ellipse(this.target.x, this.target.y, this.target.diameter);
         }
     }
 }
 
 module.exports = World;
-},{"./population.js":5}]},{},[3]);
+},{"./fitnessMeasurer.js":2,"./population.js":5}]},{},[3]);
