@@ -24,10 +24,10 @@ class Organism {
         return new Organism(childDNA);
     }
 
-    update(lifeSpanTimer) {        
+    update(lifeSpanTimer) {
         if (!this.completed && !this.crashed) {
             this.lifeSpan = lifeSpanTimer;
-            this.acc.add(this.dna.genes[lifeSpanTimer]);            
+            this.acc.add(this.dna.genes[lifeSpanTimer]);
             this.vel.add(this.acc);
             this.pos.add(this.vel);
             this.acc.mult(0);

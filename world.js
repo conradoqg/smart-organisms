@@ -1,4 +1,5 @@
 const Population = require('./population.js');
+const FitnessMeasurer = require('./fitnessMeasurer.js');
 
 class World {
     constructor() {
@@ -19,6 +20,7 @@ class World {
     setup() {
         // Canvas
         p5i.createCanvas(this.config.width, this.config.height);
+        p5i.pixelDensity(1);
 
         // p5 Initial State
         this.setP5InitialState();
@@ -144,7 +146,7 @@ class World {
                     this.statistics.avgLifeSpans = lifeSpanSum / i;
                     this.statistics.avgDistance = distanceSum / i;
                 }
-                
+
                 // Generates a new population if the generation run out of time
                 if (this.lifeSpanTimer == this.config.lifeSpan || (deaths + hits) == this.config.popSize) {
                     // Historic statistics
@@ -179,16 +181,42 @@ class World {
                 (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> 1st Hit: Gen ' + this.statistics.firstHit : '')
             );
 
+            // Target
+            p5i.fill(p5i.color('red'));
+            p5i.ellipse(this.target.x, this.target.y, this.target.diameter);
+
+            // Obstacle
+            p5i.fill(255);
+            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
+
+            // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
+            if (FitnessMeasurer.bitMap == null) {
+                let bitMap = [];
+                p5i.loadPixels();
+                for (var x = 0; x < p5i.width; x++) {
+                    let row = Array(p5i.height);
+                    for (var y = 0; y < p5i.height; y++) {
+                        var index = (x + y * p5i.width) * 4;
+                        if (p5i.color(255).levels[0] == p5i.pixels[index] &&
+                            p5i.color(255).levels[1] == p5i.pixels[index + 1] &&
+                            p5i.color(255).levels[2] == p5i.pixels[index + 2] &&
+                            p5i.color(255).levels[3] == p5i.pixels[index + 3]) {
+                            row[y] = 0;
+                        } else {
+                            row[y] = 1;
+                        }
+                    }
+                    bitMap.push(row);
+                }
+                FitnessMeasurer.bitMap = bitMap;
+            }
+
             if (this.population) {
                 for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
                     organism.render();
                 }
             }
-
-            p5i.fill(255);
-            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
-            p5i.ellipse(this.target.x, this.target.y, this.target.diameter);
         }
     }
 }

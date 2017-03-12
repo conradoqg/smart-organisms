@@ -8,9 +8,8 @@
     crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.7/addons/p5.dom.js" integrity="sha256-ylVoD/YZjnDGXuogdMTwAI+Ez+m/48IPpUbEQsUKxtE="
     crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.7/addons/p5.sound.js" integrity="sha256-hgBsi1JVGFq+ThITbbGCgRh4K+rvJ33inoRgslskWKA="
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/javascript-astar/0.4.1/astar.js" integrity="sha256-XDFkI8sQDBXh7o3jZytNCjaRCykE2flb5C0fdjtdEo4="
     crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/store.js/1.3.20/store.min.js"></script>
   <script src="lib/p5.collide2d.js"></script>
   <style media="screen" type="text/css">
     #canvas {
@@ -24,15 +23,15 @@
       display: flex;
       position: absolute;
       margin: 0px;
-      font-size: 15px;      
+      font-size: 15px;
       pointer-events: none
-    }    
+    }
     
     #debug {
-      margin: 10px; 
-      pointer-events: auto;     
+      margin: 10px;
+      pointer-events: auto;
     }
-
+    
     #debug img {
       vertical-align: middle;
     }
@@ -42,40 +41,39 @@
       position: absolute;
       margin: 0px;
       font-size: 15px;
-      justify-content: flex-end;  
-      pointer-events: none    
+      justify-content: flex-end;
+      pointer-events: none
     }
     
     #settings {
-      margin: 10px;      
+      margin: 10px;
       pointer-events: auto;
     }
-
+    
     #settings input {
       background-color: transparent;
       border: 0px;
-      color: white;      
-    }    
-
+      color: white;
+    }
+    
     #controlContainer {
       display: flex;
       position: absolute;
       margin: 0px;
       font-size: 15px;
       justify-content: flex-end;
-      align-items: flex-end;    
-      pointer-events: none  
+      align-items: flex-end;
+      pointer-events: none
     }
     
     #control {
-      margin: 10px;   
-      pointer-events: auto;   
+      margin: 10px;
+      pointer-events: auto;
     }
     
     #control button {
       margin: 5px;
     }
-
   </style>
 </head>
 

@@ -13,7 +13,7 @@ class Population {
 
     evaluate(target) {
         // Find max fitness
-        let maxFit = 0;        
+        let maxFit = 0;
         for (let i = 0; i < this.popSize; i++) {
             this.organisms[i].calcFitness(target);
             maxFit = Math.max(this.organisms[i].fitness, maxFit);
