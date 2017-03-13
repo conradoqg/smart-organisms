@@ -14,6 +14,16 @@ class FitnessMeasurer {
     }
 
     static method2(organism, target) {
+        let distance = organism.distanceTo(target);
+        return this.weightedResult(organism, target, distance);
+    }
+
+    static method3(organism, target) {
+        let distance = this.aStarDistance(organism.pos, target);
+        return this.weightedResult(organism, target, distance);
+    }
+
+    static weightedResult(organism, target, distance) {
         // Distance constants
         const maxDistance = Math.max(
             p5i.createVector(0, 0).dist(organism.initialPos),
@@ -21,8 +31,7 @@ class FitnessMeasurer {
             p5i.createVector(p5i.width, 0).dist(organism.initialPos),
             p5i.createVector(p5i.width, p5i.height).dist(organism.initialPos)
         );
-        const minDistance = 0;
-        let distance = this.aStarDistance(organism.pos, target);
+        const minDistance = 0;        
         distance = (distance == null ? maxDistance : distance);
 
         // Lifespane constants
@@ -42,7 +51,7 @@ class FitnessMeasurer {
         let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
 
         // Apply extra weight when the organism hits the goal
-        if (organism.completed) result *= 10;
+        if (organism.completed) result *= 10;        
 
         return result;
     }
@@ -96,7 +105,7 @@ class FitnessMeasurer {
         // Do a A* search from the starting point to the target point
         var result = astar.search(graph, start, end, { closest: true });
 
-        // Draw found path (for debuggin purposes)
+        // Draw path found (for debuggin purposes)
         p5i.push();
         p5i.stroke('yellow');
         result.forEach((node) => {
