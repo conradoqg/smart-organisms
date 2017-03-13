@@ -16,7 +16,7 @@ class Organism {
     }
 
     calcFitness(target) {
-        this.fitness = FitnessMeasurer.method2(this, target);
+        this.fitness = FitnessMeasurer.method1(this, target);
     }
 
     mate(partner) {
