@@ -4,6 +4,15 @@ const FitnessMeasurer = require('./fitnessMeasurer.js');
 class World {
     constructor() {
         this.setInitialState();
+        this.config = {
+            width: 600,
+            height: 600,
+            FPS: 60,
+            popSize: 100,
+            lifeSpan: 1600,
+            seed: 10,
+            speed: 5
+        };
         this.target = {
             x: this.config.width / 2,
             y: 50,
@@ -52,6 +61,15 @@ class World {
         this.lifeSpanInput.size(30);
         this.lifeSpanInput.parent(this.settingsDiv);
 
+        p5i.createElement('br').parent(this.settingsDiv);
+        p5i.createElement('label', 'Speed: ').parent(this.settingsDiv);
+        this.speedSlider = p5i.createSlider(0, 200, this.config.speed);
+        this.speedSlider.style('width', '210px');
+        this.speedSlider.parent(this.settingsDiv);
+        this.speedSlider.mouseMoved(() => {
+            this.config.speed = this.speedSlider.value();
+        });
+
         let controlContainer = p5i.select('#controlContainer');
         controlContainer.style('width', this.config.width.toString() + 'px');
         controlContainer.style('height', this.config.height.toString() + 'px');
@@ -65,7 +83,10 @@ class World {
         this.resetButton = p5i.createButton('reset');
         this.resetButton.parent(this.controlDiv);
         this.resetButton.mousePressed(() => {
-            this.setInitialState(this.seedInput.value(), this.popSizeInput.value(), this.lifeSpanInput.value());
+            this.config.seed = this.seedInput.value();
+            this.config.popSize = this.popSizeInput.value();
+            this.config.lifeSpan = this.lifeSpanInput.value();
+            this.setInitialState();
             this.setP5InitialState();
         });
 
@@ -75,20 +96,16 @@ class World {
         // Main update loop
         let loop = () => {
             this.update();
-            setTimeout(loop);
+            if (this.config.speed <= 1) {
+                setImmediate(loop);
+            } else {
+                setTimeout(loop, this.config.speed);
+            }
         };
         loop();
     }
 
-    setInitialState(seed, popSize, lifeSpan) {
-        this.config = {
-            width: 600,
-            height: 600,
-            FPS: 60,
-            popSize: (popSize == null ? 100 : parseInt(popSize)),
-            lifeSpan: (lifeSpan == null ? 1600 : parseInt(lifeSpan)),
-            seed: (seed == null ? 10 : parseInt(seed))
-        };
+    setInitialState() {
         this.population = null;
         this.lifeSpanTimer = 0;
         this.generation = 1;
@@ -179,7 +196,7 @@ class World {
                 '<br/> Hits: ' + this.population.organisms.reduce((hits, organism) => { return hits + (organism.completed ? 1 : 0); }, 0) + ' ' + (typeof (this.statistics.hitsHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.hitsHist.slice(-250).join(',') + '"/>' : '') +
                 (typeof (this.statistics.avgLifeSpans) != 'undefined' ? '<br/> Avg Life Span: ' + this.statistics.avgLifeSpans.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgLifeSpansHist.slice(-250).join(',') + '"/>' : '') +
                 (typeof (this.statistics.avgDistance) != 'undefined' ? '<br/> Avg Distance: ' + this.statistics.avgDistance.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgDistanceHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgDistanceHist.slice(-250).join(',') + '"/>' : '') +
-                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> 1st Hit: Gen ' + this.statistics.firstHit : '') + 
+                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> 1st Hit: Gen ' + this.statistics.firstHit : '') +
                 (typeof (this.statistics.fiftiethHit) != 'undefined' ? '<br/> 50th Hit: Gen ' + this.statistics.fiftiethHit : '')
             );
 
