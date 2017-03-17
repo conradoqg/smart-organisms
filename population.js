@@ -14,10 +14,14 @@ class Population {
     evaluate(target) {
         // Find max fitness
         let maxFit = 0;
+        let v1 = performance.now();
         for (let i = 0; i < this.popSize; i++) {
             this.organisms[i].calcFitness(target);
             maxFit = Math.max(this.organisms[i].fitness, maxFit);
         }
+        let v2 = performance.now();
+        console.log('Duration: ' + (v2 - v1) + 'ms');
+
 
         // Map fitness between 0 and 1.        
         for (let i = 0; i < this.popSize; i++) {

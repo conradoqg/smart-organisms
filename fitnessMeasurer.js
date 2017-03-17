@@ -31,7 +31,7 @@ class FitnessMeasurer {
             p5i.createVector(p5i.width, 0).dist(organism.initialPos),
             p5i.createVector(p5i.width, p5i.height).dist(organism.initialPos)
         );
-        const minDistance = 0;        
+        const minDistance = 0;
         distance = (distance == null ? maxDistance : distance);
 
         // Lifespane constants
@@ -51,12 +51,16 @@ class FitnessMeasurer {
         let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
 
         // Apply extra weight when the organism hits the goal
-        if (organism.completed) result *= 10;        
+        if (organism.completed) result *= 10;
 
         return result;
     }
 
     static aStarDistance(object, target) {
+        let reducationRate = .20;
+        let xResolution = bitMap.length * reducationRate;
+        let xLenghtReduction = bitMap.length / xResolution;
+
         // Cache here is important because it takes a while to create a Graph
         let graph;
         if (cachedCleanGraph == null) {
@@ -69,11 +73,11 @@ class FitnessMeasurer {
         graph = cachedCleanGraph;
 
         // Limits X and Y for both object according the size of the bitmap
-        let objectX = Math.min(Math.max(Math.round(object.x), 0), bitMap[0].length - 1);
-        let objectY = Math.min(Math.max(Math.round(object.y), 0), bitMap.length - 1);
+        let objectX = Math.min(Math.max(Math.round(object.x / xLenghtReduction), 0), bitMap[0].length - 1);
+        let objectY = Math.min(Math.max(Math.round(object.y / xLenghtReduction), 0), bitMap.length - 1);
 
-        let targetX = Math.min(Math.max(Math.round(target.x), 0), bitMap[0].length - 1);
-        let targetY = Math.min(Math.max(Math.round(target.y), 0), bitMap.length - 1);
+        let targetX = Math.min(Math.max(Math.round(target.x / xLenghtReduction), 0), bitMap[0].length - 1);
+        let targetY = Math.min(Math.max(Math.round(target.y / xLenghtReduction), 0), bitMap.length - 1);
 
         // Setup the start and end points;
         var start = graph.grid[objectX][objectY];
@@ -105,13 +109,14 @@ class FitnessMeasurer {
         // Do a A* search from the starting point to the target point
         var result = astar.search(graph, start, end, { closest: true });
 
-        // Draw path found (for debuggin purposes)
+        /*
         p5i.push();
         p5i.stroke('yellow');
-        result.forEach((node) => {
-            p5i.point(node.x, node.y);
-        });
-        p5i.pop();
+        for (var i = 1; i < result.length; i++) {
+            p5i.line(result[i - 1].x * xLenghtReduction, result[i - 1].y * xLenghtReduction, result[i].x * xLenghtReduction, result[i].y * xLenghtReduction);
+            //p5i.line(result[i-1].x, result[i-1].y, result[i].x, result[i].y);
+        }
+        p5i.pop();*/
 
         let distance = (result.length == 0 ? null : result.length);
         return distance;

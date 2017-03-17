@@ -17,7 +17,8 @@
         "p5i": true,
         "store": true,
         "astar": true,
-        "Graph": true
+        "Graph": true,
+        "operative": true
     },
     "rules": {
         "no-const-assign": "warn",

@@ -204,7 +204,7 @@ class World {
                 (typeof (this.statistics.maxHits) != 'undefined' ? '<br/> Max Hits: ' + this.statistics.maxHits : '') +
                 (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> 1st Hit: Gen ' + this.statistics.firstHit : '') +
                 (typeof (this.statistics.fiftiethHit) != 'undefined' ? '<br/> 50th Hit: Gen ' + this.statistics.fiftiethHit : '')
-                
+
             );
 
             // Target
@@ -218,15 +218,16 @@ class World {
             // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
             if (FitnessMeasurer.bitMap == null) {
                 let bitMap = [];
+                let wallColor = p5i.color(255);
                 p5i.loadPixels();
                 for (var x = 0; x < p5i.width; x++) {
                     let row = Array(p5i.height);
                     for (var y = 0; y < p5i.height; y++) {
                         var index = (x + y * p5i.width) * 4;
-                        if (p5i.color(255).levels[0] == p5i.pixels[index] &&
-                            p5i.color(255).levels[1] == p5i.pixels[index + 1] &&
-                            p5i.color(255).levels[2] == p5i.pixels[index + 2] &&
-                            p5i.color(255).levels[3] == p5i.pixels[index + 3]) {
+                        if (wallColor.levels[0] == p5i.pixels[index] &&
+                            wallColor.levels[1] == p5i.pixels[index + 1] &&
+                            wallColor.levels[2] == p5i.pixels[index + 2] &&
+                            wallColor.levels[3] == p5i.pixels[index + 3]) {
                             row[y] = 0;
                         } else {
                             row[y] = 1;
@@ -234,6 +235,9 @@ class World {
                     }
                     bitMap.push(row);
                 }
+
+                bitMap = resize2DArray(bitMap, .20);
+
                 FitnessMeasurer.bitMap = bitMap;
             }
 
@@ -245,6 +249,45 @@ class World {
             }
         }
     }
+}
+
+function resize2DArray(arrayToReduce, percentage) {
+    var reducationRate = percentage;
+    var xResolution = arrayToReduce.length * reducationRate;
+    var xLenghtReduction = arrayToReduce.length / xResolution;
+    var reducedBitmap = Array(xLenghtReduction);
+    for (var x = 0; x < arrayToReduce.length; x += xLenghtReduction) {
+        var reductionRow = [];
+        for (var xx = x; xx < x + xLenghtReduction; xx++) {
+            var yResolution = arrayToReduce[x].length * reducationRate;
+            var yLenghtReduction = arrayToReduce[x].length / yResolution;
+            var row = [];
+            for (var y = 0; y < arrayToReduce[x].length; y += yLenghtReduction) {
+                var reductionSum = 0;
+                for (var yy = y; yy < y + yLenghtReduction; yy++) {
+                    reductionSum += arrayToReduce[x][yy];
+                }
+                row[y / yLenghtReduction] = Math.floor(reductionSum / yLenghtReduction);
+            }
+            reductionRow.push(row);
+        }
+
+        reducedBitmap[x / xLenghtReduction] = Array(xResolution).fill(0);
+        for (var i = 0; i < reductionRow.length; i++) {
+            for (var ii = 0; ii < reductionRow[i].length; ii++) {
+                reducedBitmap[x / xLenghtReduction][ii] += reductionRow[i][ii];
+            }
+        }
+
+        for (var i = 0; i < reductionRow.length; i++) {
+            for (var ii = 0; ii < reductionRow[i].length; ii++) {
+                reducedBitmap[x / xLenghtReduction][ii] = Math.floor(reducedBitmap[x / xLenghtReduction][ii] / reductionRow.length);
+            }
+            break;
+        }
+    }
+
+    return reducedBitmap;
 }
 
 module.exports = World;

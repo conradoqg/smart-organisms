@@ -13,8 +13,10 @@
 
 <body>
     <script type='text/javascript'>
+        window.p5i = window;
         function setup() {
             createCanvas(600, 600);
+            frameRate(0.1);
             pixelDensity(1);
         }
 
@@ -22,7 +24,168 @@
             background(0);
             fill(255);
             noStroke();
-            rect(150, 300, 300, 10);
+
+            this.target = {
+                x: p5i.width / 2,
+                y: 50,
+                diameter: 20
+            };
+            this.obstacle = {
+                x: 150,
+                y: 300,
+                width: 300,
+                height: 10
+            };
+
+            // Target
+            p5i.fill(p5i.color('red'));
+            p5i.ellipse(this.target.x, this.target.y, this.target.diameter);
+
+            // Obstacle
+            p5i.fill(255);
+            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
+
+            let wallColor = p5i.color(255);
+
+            let bitMap = [];
+            p5i.loadPixels();
+            for (var x = 0; x < p5i.width; x++) {
+                let row = Array(p5i.height);
+                for (var y = 0; y < p5i.height; y++) {
+                    var index = (x + y * p5i.width) * 4;
+                    if (wallColor.levels[0] == p5i.pixels[index] &&
+                        wallColor.levels[1] == p5i.pixels[index + 1] &&
+                        wallColor.levels[2] == p5i.pixels[index + 2] &&
+                        wallColor.levels[3] == p5i.pixels[index + 3]) {
+                        row[y] = 0;
+                    } else {
+                        row[y] = 1;
+                    }
+                }
+                bitMap.push(row);
+            }
+
+            let reducationRate = .05;
+            let xResolution = bitMap.length * reducationRate;
+            let xLenghtReduction = bitMap.length / xResolution;
+            let reducedBitmap = Array(xLenghtReduction);
+            for (var x = 0; x < bitMap.length; x += xLenghtReduction) {
+                let reductionRow = [];
+                for (var xx = x; xx < x + xLenghtReduction; xx++) {
+                    let yResolution = bitMap[x].length * reducationRate;
+                    let yLenghtReduction = bitMap[x].length / yResolution;
+                    let row = Array(xResolution);
+                    for (var y = 0; y < bitMap[x].length; y += yLenghtReduction) {
+                        let reductionSum = 0;
+                        for (var yy = y; yy < y + yLenghtReduction; yy++) {
+                            reductionSum += bitMap[x][yy];
+                        }
+                        row[y / yLenghtReduction] = Math.floor(reductionSum / yLenghtReduction);
+                    }
+                    reductionRow.push(row);
+                }
+
+                reducedBitmap[x / xLenghtReduction] = Array(xResolution).fill(0);
+                for (var i = 0; i < reductionRow.length; i++) {
+                    for (var ii = 0; ii < reductionRow[i].length; ii++) {
+                        reducedBitmap[x / xLenghtReduction][ii] += reductionRow[i][ii];
+                    }
+                }
+
+                for (var i = 0; i < reductionRow.length; i++) {
+                    for (var ii = 0; ii < reductionRow[i].length; ii++) {
+                        reducedBitmap[x / xLenghtReduction][ii] = Math.floor(reducedBitmap[x / xLenghtReduction][ii] / reductionRow.length);
+                    }
+                    break;
+                }
+            }
+
+            var self = this;
+
+            var t0 = performance.now();
+
+            Graph = window.Graph;
+            astar = window.astar;
+
+            let object = {
+                x: p5i.width / 2,
+                y: p5i.height - 1
+            }
+
+            if (!self.graph) {
+                self.graph = new Graph(reducedBitmap);
+            } else {
+                self.graph.init();
+            }
+
+
+            p5i.push();
+            for (var x = 0; x < reducedBitmap.length; x++) {
+                for (var y = 0; y < reducedBitmap[x].length; y++) {
+                    if (reducedBitmap[x][y] == 0)
+                        p5i.fill('blue');
+                    else {
+                        p5i.fill('green');
+                    }
+                    p5i.ellipse(x * xLenghtReduction, y * xLenghtReduction, 5);
+                }
+            }
+            p5i.pop();
+
+            // Limits X and Y for both object according the size of the bitmap
+
+            let objectX = Math.min(Math.max(Math.round(object.x / xLenghtReduction), 0), self.graph.grid[0].length - 1);
+            let objectY = Math.min(Math.max(Math.round(object.y / xLenghtReduction), 0), self.graph.grid.length - 1);
+            let targetX = Math.min(Math.max(Math.round(target.x / xLenghtReduction), 0), self.graph.grid[0].length - 1);
+            let targetY = Math.min(Math.max(Math.round(target.y / xLenghtReduction), 0), self.graph.grid.length - 1);
+
+            //let objectX = Math.min(Math.max(object.x, 0), self.graph.grid[0].length - 1);
+            //let objectY = Math.min(Math.max(object.y, 0), self.graph.grid.length - 1);
+            //let targetX = Math.min(Math.max(target.x, 0), self.graph.grid[0].length - 1);
+            //let targetY = Math.min(Math.max(target.y, 0), self.graph.grid.length - 1);
+
+            // Setup the start and end points;
+            var start = self.graph.grid[objectX][objectY];
+            var end = self.graph.grid[targetX][targetY];
+
+            // If the start point is a wall, find the nearest nonwall node
+            if (start.weight == 0) {
+                let findClosestNonwall = (nodes) => {
+                    let nodeFound = null;
+                    for (let i = 0; i < nodes.length; i++) {
+                        if (!nodes[i].weight == 0) {
+                            nodeFound = nodes[i];
+                        }
+                    }
+
+                    if (!nodeFound) {
+                        let neighbors = [];
+                        for (let i = 0; i < nodes.length; i++) {
+                            neighbors = neighbors.concat(self.graph.neighbors(nodes[i]));
+                        }
+                        return findClosestNonwall(neighbors);
+                    }
+
+                    return nodeFound;
+                };
+                start = findClosestNonwall(self.graph.neighbors(start));
+            }
+
+            // Do a A* search from the starting point to the target point
+            var result = astar.search(self.graph, start, end, { closest: true });
+
+            let distance = (result.length == 0 ? null : result.length);
+            var t1 = performance.now();
+
+            // Draw path found (for debuggin purposes)
+            p5i.push();
+            p5i.stroke('yellow');
+            for (var i = 1; i < result.length; i++) {
+                p5i.line(result[i - 1].x * xLenghtReduction, result[i - 1].y * xLenghtReduction, result[i].x * xLenghtReduction, result[i].y * xLenghtReduction);
+                //p5i.line(result[i-1].x, result[i-1].y, result[i].x, result[i].y);
+            }
+            p5i.pop();
+            console.log(object.id + ': ' + (t1 - t0));
         }
     </script>
 </body>
