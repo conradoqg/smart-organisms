@@ -19,7 +19,9 @@ class Population {
 
         let calcFitnessResults = this.organisms.map((organism) => {
             return new Promise((resolve) => {
-                resolve(organism.calcFitness(target));
+                setImmediate(() => {
+                    resolve(organism.calcFitness(target));
+                });
             });
         });
 

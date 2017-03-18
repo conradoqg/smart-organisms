@@ -18,7 +18,8 @@
         "store": true,
         "astar": true,
         "Graph": true,
-        "operative": true
+        "mitt": true,
+        "uQuery": true
     },
     "rules": {
         "no-const-assign": "warn",

@@ -2,16 +2,16 @@ let PluginManager = require('../pluginManager.js');
 let emitter = PluginManager.getEmitter();
 
 let bitMap = null;
-let reducationRate = .20;
+let reducationRate = .50;
 let cachedCleanGraph = null;
-let firstRender = true;
-let calculatedPaths = [];
+let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
     if (pluginID == 'aStartFitness') {
         emitter.on('world-afterRender', onWorldAfterRender);
         emitter.on('world-reset', onReset);
         emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.on('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
 });
 
@@ -20,11 +20,12 @@ emitter.on('pluginManager-deactivate', (pluginID) => {
         emitter.off('world-afterRender', onWorldAfterRender);
         emitter.off('world-reset', onReset);
         emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.off('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
 });
 
 let onWorldAfterRender = () => {
-    if (firstRender) {
+    if (bitMap == null) {
         // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
         bitMap = [];
         let wallColor = p5i.color(255);
@@ -46,12 +47,26 @@ let onWorldAfterRender = () => {
         }
 
         bitMap = resize2DArray(bitMap);
-        firstRender = false;
+    }
+
+    if (calculatedPaths != null) {
+        if (window.isDebuging) {
+            p5i.push();
+            p5i.stroke('yellow');
+            var xResolution = bitMap.length * reducationRate;
+            var xLenghtReduction = bitMap.length / xResolution;
+            calculatedPaths.forEach((path) => {
+                for (var i = 1; i < path.length; i++) {
+                    p5i.line(path[i - 1].x * xLenghtReduction, path[i - 1].y * xLenghtReduction, path[i].x * xLenghtReduction, path[i].y * xLenghtReduction);
+                }
+            });
+            p5i.pop();
+        }
     }
 };
 
 let onReset = () => {
-    firstRender = true;
+    bitMap = true;
 };
 
 let onOrganismBeforeCalcFitness = (organism) => {
@@ -97,6 +112,7 @@ function resize2DArray(arrayToReduce) {
 }
 
 function calcFitness(organism, target) {
+    if (!calculatedPaths) calculatedPaths = [];
     let distance = aStarDistance(organism.pos, target);
     return weightedResult(organism, target, distance);
 }
@@ -192,3 +208,7 @@ function aStarDistance(object, target) {
     let distance = (result.length == 0 ? null : result.length);
     return distance;
 }
+
+let onAfterAllFitnessCalculated = () => {
+    calculatedPaths = null;
+};
