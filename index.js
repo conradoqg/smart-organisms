@@ -7,9 +7,6 @@
 
 require('./plugins/*.js', { mode: 'expand' });
 
-let PluginManager = require('./pluginManager.js');
-PluginManager.activate('aStartFitness');
-
 const World = require('./world.js');
 const word = new World();
 

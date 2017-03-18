@@ -26,6 +26,7 @@ class World {
         };
         this.emitter = new mitt();
         PluginManager.registerEmitter('world', this.emitter);
+        PluginManager.activate('aStartFitness');
     }
 
     setup() {
@@ -84,14 +85,26 @@ class World {
         });
         this.resetButton = p5i.createButton('reset');
         this.resetButton.parent(this.controlDiv);
-        this.resetButton.mousePressed(() => {
-            this.config.seed = parseInt(this.seedInput.value());
-            this.config.popSize = parseInt(this.popSizeInput.value());
-            this.config.lifeSpan = parseInt(this.lifeSpanInput.value());
-            this.setInitialState();
-            this.setP5InitialState();
-            this.emitter.emit('afterReset', this);
+        this.resetButton.mousePressed(this.reset.bind(this));
+
+        p5i.createElement('br').parent(this.settingsDiv);
+
+        p5i.createElement('label', 'Fitness Calculator: ').parent(this.settingsDiv);
+        this.fitnessCalculatorSelect = p5i.createSelect();
+        this.fitnessCalculatorSelect.option('A*');
+        this.fitnessCalculatorSelect.option('Weighted');
+        this.fitnessCalculatorSelect.changed(() => {
+            let selected = this.fitnessCalculatorSelect.value();
+
+            if (selected == 'A*') {
+                PluginManager.deactivate('weightedFitness');
+                PluginManager.activate('aStartFitness');                
+            } else {
+                PluginManager.deactivate('aStartFitness');
+                PluginManager.activate('weightedFitness');                
+            }
         });
+        this.fitnessCalculatorSelect.parent(this.settingsDiv);
 
         // p5        
         p5i.draw = this.render.bind(this);
@@ -100,7 +113,7 @@ class World {
         this.update();
     }
 
-    setInitialState() {
+    setInitialState() {        
         this.population = null;
         this.lifeSpanTimer = 0;
         this.generation = 1;
@@ -116,6 +129,15 @@ class World {
         p5i.randomSeed(this.config.seed);
 
         this.population = new Population(this.config.lifeSpan, this.config.popSize);
+    }
+
+    reset() {
+        this.config.seed = parseInt(this.seedInput.value());
+        this.config.popSize = parseInt(this.popSizeInput.value());
+        this.config.lifeSpan = parseInt(this.lifeSpanInput.value());
+        this.setInitialState();
+        this.setP5InitialState();
+        this.emitter.emit('afterReset', this);
     }
 
     update() {

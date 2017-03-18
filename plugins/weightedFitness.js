@@ -1,26 +1,47 @@
 let PluginManager = require('../pluginManager.js');
 let emitter = PluginManager.getEmitter();
 
+let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
     if (pluginID == 'weightedFitness') {
+        emitter.on('world-afterRender', onWorldAfterRender);
         emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.on('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
 });
 
 emitter.on('pluginManager-deactivate', (pluginID) => {
     if (pluginID == 'weightedFitness') {
+        emitter.off('world-afterRender', onWorldAfterRender);
         emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.off('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
 });
+
+let onWorldAfterRender = () => {
+    if (calculatedPaths != null) {
+        if (window.isDebuging) {
+            p5i.push();
+            p5i.stroke('yellow');
+            calculatedPaths.forEach((path) => {
+                p5i.line(path.organism.pos.x, path.organism.pos.y, path.target.x, path.target.y);
+            });
+            p5i.pop();
+        }
+    }
+};
 
 let onOrganismBeforeCalcFitness = (organism) => {
     organism.fitnessCalculatorFn = calcFitness;
 };
 
 let calcFitness = (organism, target) => {
+    if (!calculatedPaths) calculatedPaths = [];
     let distance = organism.distanceTo(target);
-    return weightedResult(organism, target, distance);
+    let result = weightedResult(organism, target, distance);
+    calculatedPaths.push({ organism, target });
+    return result;
 };
 
 function weightedResult(organism, target, distance) {
@@ -55,3 +76,7 @@ function weightedResult(organism, target, distance) {
 
     return result;
 }
+
+let onAfterAllFitnessCalculated = () => {
+    calculatedPaths = null;
+};
