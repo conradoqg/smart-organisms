@@ -1,5 +1,5 @@
 const DNA = require('./dna.js');
-const FitnessMeasurer = require('./fitnessMeasurer.js');
+const PluginManager = require('./pluginManager.js');
 
 class Organism {
     constructor(dnaOrGeneAmount) {
@@ -13,10 +13,25 @@ class Organism {
         this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
         this.fitness = 0;
         this.lifeSpan = 0;
+        this.fitnessCalculatorFn = this.distance;
+        this.emitter = new mitt();
+        PluginManager.registerEmitter('organism', this.emitter);
+    }
+
+    distance(organism, target) {
+        let invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
+
+        if (organism.completed) {
+            return invertedDistance *= 10;
+        }
+        if (organism.crashed) {
+            return invertedDistance /= 10;
+        }
     }
 
     calcFitness(target) {
-        this.fitness = FitnessMeasurer.method3(this, target);
+        this.emitter.emit('beforeCalcFitness', this);
+        this.fitness = this.fitnessCalculatorFn(this, target);
     }
 
     mate(partner) {

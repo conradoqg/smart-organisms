@@ -1,5 +1,5 @@
 const Population = require('./population.js');
-const FitnessMeasurer = require('./fitnessMeasurer.js');
+const PluginManager = require('./pluginManager.js');
 
 class World {
     constructor() {
@@ -24,6 +24,8 @@ class World {
             width: 300,
             height: 10
         };
+        this.emitter = new mitt();
+        PluginManager.registerEmitter('world', this.emitter);
     }
 
     setup() {
@@ -111,6 +113,7 @@ class World {
         this.generation = 1;
         this.paused = false;
         this.statistics = {};
+        this.firstRender = true;
     }
 
     setP5InitialState() {
@@ -213,33 +216,7 @@ class World {
 
             // Obstacle
             p5i.fill(255);
-            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
-
-            // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
-            if (FitnessMeasurer.bitMap == null) {
-                let bitMap = [];
-                let wallColor = p5i.color(255);
-                p5i.loadPixels();
-                for (var x = 0; x < p5i.width; x++) {
-                    let row = Array(p5i.height);
-                    for (var y = 0; y < p5i.height; y++) {
-                        var index = (x + y * p5i.width) * 4;
-                        if (wallColor.levels[0] == p5i.pixels[index] &&
-                            wallColor.levels[1] == p5i.pixels[index + 1] &&
-                            wallColor.levels[2] == p5i.pixels[index + 2] &&
-                            wallColor.levels[3] == p5i.pixels[index + 3]) {
-                            row[y] = 0;
-                        } else {
-                            row[y] = 1;
-                        }
-                    }
-                    bitMap.push(row);
-                }
-
-                bitMap = resize2DArray(bitMap, .20);
-
-                FitnessMeasurer.bitMap = bitMap;
-            }
+            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);            
 
             if (this.population) {
                 for (let i = 0; i < this.population.organisms.length; i++) {
@@ -247,47 +224,13 @@ class World {
                     organism.render();
                 }
             }
+
+            if (this.firstRender) {
+                this.emitter.emit('afterFirstRender', this);
+                this.firstRender = false;
+            }
         }
     }
-}
-
-function resize2DArray(arrayToReduce, percentage) {
-    var reducationRate = percentage;
-    var xResolution = arrayToReduce.length * reducationRate;
-    var xLenghtReduction = arrayToReduce.length / xResolution;
-    var reducedBitmap = Array(xLenghtReduction);
-    for (var x = 0; x < arrayToReduce.length; x += xLenghtReduction) {
-        var reductionRow = [];
-        for (var xx = x; xx < x + xLenghtReduction; xx++) {
-            var yResolution = arrayToReduce[x].length * reducationRate;
-            var yLenghtReduction = arrayToReduce[x].length / yResolution;
-            var row = [];
-            for (var y = 0; y < arrayToReduce[x].length; y += yLenghtReduction) {
-                var reductionSum = 0;
-                for (var yy = y; yy < y + yLenghtReduction; yy++) {
-                    reductionSum += arrayToReduce[x][yy];
-                }
-                row[y / yLenghtReduction] = Math.floor(reductionSum / yLenghtReduction);
-            }
-            reductionRow.push(row);
-        }
-
-        reducedBitmap[x / xLenghtReduction] = Array(xResolution).fill(0);
-        for (var i = 0; i < reductionRow.length; i++) {
-            for (var ii = 0; ii < reductionRow[i].length; ii++) {
-                reducedBitmap[x / xLenghtReduction][ii] += reductionRow[i][ii];
-            }
-        }
-
-        for (var i = 0; i < reductionRow.length; i++) {
-            for (var ii = 0; ii < reductionRow[i].length; ii++) {
-                reducedBitmap[x / xLenghtReduction][ii] = Math.floor(reducedBitmap[x / xLenghtReduction][ii] / reductionRow.length);
-            }
-            break;
-        }
-    }
-
-    return reducedBitmap;
 }
 
 module.exports = World;

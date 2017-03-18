@@ -9,8 +9,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "budo index.js:dist/bundle.js -dir . -l -o",
-    "dist": "browserify ./index.js -o dist/bundle.js"
+    "start": "budo index.js:dist/bundle.js -dir . -l -o -- -t require-globify",
+    "dist": "browserify ./index.js -o dist/bundle.js -t require-globify"
   },
   "author": "Conrado Quilles Gomes <conradoqg@gmail.com>",
   "license": "MIT"

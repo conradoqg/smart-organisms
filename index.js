@@ -4,8 +4,12 @@
  * based on the work of Daniel Shiffman: http://codingtra.in
  *  
  */
-const World = require('./world.js');
 
+require('./plugins/*.js', { mode: 'expand' });
+
+let PluginManager = require('./pluginManager.js');
+
+const World = require('./world.js');
 const word = new World();
 
 p5.disableFriendlyErrors = true;
