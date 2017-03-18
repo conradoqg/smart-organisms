@@ -4,43 +4,54 @@ let emitter = PluginManager.getEmitter();
 let bitMap = null;
 let reducationRate = .20;
 let cachedCleanGraph = null;
+let firstRender = true;
+let calculatedPaths = [];
 
 emitter.on('pluginManager-activate', (pluginID) => {
     if (pluginID == 'aStartFitness') {
-        emitter.on('world-afterFirstRender', onWorldAfterFirstRender);
-        emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.on('world-afterRender', onWorldAfterRender);
+        emitter.on('world-reset', onReset);
+        emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);        
     }
 });
 
 emitter.on('pluginManager-deactivate', (pluginID) => {
     if (pluginID == 'aStartFitness') {
-        emitter.off('world-afterFirstRender', onWorldAfterFirstRender);
-        emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.off('world-afterRender', onWorldAfterRender);
+        emitter.off('world-reset', onReset);
+        emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);        
     }
 });
 
-let onWorldAfterFirstRender = () => {    
-    // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
-    bitMap = [];
-    let wallColor = p5i.color(255);
-    p5i.loadPixels();
-    for (var x = 0; x < p5i.width; x++) {
-        let row = Array(p5i.height);
-        for (var y = 0; y < p5i.height; y++) {
-            var index = (x + y * p5i.width) * 4;
-            if (wallColor.levels[0] == p5i.pixels[index] &&
-                wallColor.levels[1] == p5i.pixels[index + 1] &&
-                wallColor.levels[2] == p5i.pixels[index + 2] &&
-                wallColor.levels[3] == p5i.pixels[index + 3]) {
-                row[y] = 0;
-            } else {
-                row[y] = 1;
+let onWorldAfterRender = () => {
+    if (firstRender) {
+        // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
+        bitMap = [];
+        let wallColor = p5i.color(255);
+        p5i.loadPixels();
+        for (var x = 0; x < p5i.width; x++) {
+            let row = Array(p5i.height);
+            for (var y = 0; y < p5i.height; y++) {
+                var index = (x + y * p5i.width) * 4;
+                if (wallColor.levels[0] == p5i.pixels[index] &&
+                    wallColor.levels[1] == p5i.pixels[index + 1] &&
+                    wallColor.levels[2] == p5i.pixels[index + 2] &&
+                    wallColor.levels[3] == p5i.pixels[index + 3]) {
+                    row[y] = 0;
+                } else {
+                    row[y] = 1;
+                }
             }
+            bitMap.push(row);
         }
-        bitMap.push(row);
-    }
 
-    bitMap = resize2DArray(bitMap);
+        bitMap = resize2DArray(bitMap);
+        firstRender = false;
+    }
+};
+
+let onReset = () => {
+    firstRender = true;
 };
 
 let onOrganismBeforeCalcFitness = (organism) => {
@@ -176,14 +187,7 @@ function aStarDistance(object, target) {
     // Do a A* search from the starting point to the target point
     var result = astar.search(graph, start, end, { closest: true });
 
-    /*
-    p5i.push();
-    p5i.stroke('yellow');
-    for (var i = 1; i < result.length; i++) {
-        p5i.line(result[i - 1].x * xLenghtReduction, result[i - 1].y * xLenghtReduction, result[i].x * xLenghtReduction, result[i].y * xLenghtReduction);
-        //p5i.line(result[i-1].x, result[i-1].y, result[i].x, result[i].y);
-    }
-    p5i.pop();*/
+    calculatedPaths.push(result);
 
     let distance = (result.length == 0 ? null : result.length);
     return distance;

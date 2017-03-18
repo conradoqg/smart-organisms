@@ -90,6 +90,7 @@ class World {
             this.config.lifeSpan = this.lifeSpanInput.value();
             this.setInitialState();
             this.setP5InitialState();
+            this.emitter.emit('afterReset', this);
         });
 
         // p5        
@@ -112,8 +113,7 @@ class World {
         this.lifeSpanTimer = 0;
         this.generation = 1;
         this.paused = false;
-        this.statistics = {};
-        this.firstRender = true;
+        this.statistics = {};        
     }
 
     setP5InitialState() {
@@ -188,7 +188,7 @@ class World {
                     this.population.selection();
                     this.generation++;
                     this.lifeSpanTimer = 0;
-                }
+                }                
             }
         }
     }
@@ -223,12 +223,9 @@ class World {
                     let organism = this.population.organisms[i];
                     organism.render();
                 }
-            }
+            }            
 
-            if (this.firstRender) {
-                this.emitter.emit('afterFirstRender', this);
-                this.firstRender = false;
-            }
+            this.emitter.emit('afterRender', this);
         }
     }
 }

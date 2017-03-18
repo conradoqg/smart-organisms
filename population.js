@@ -1,4 +1,5 @@
 const Organism = require('./organism.js');
+const PluginManager = require('./pluginManager.js');
 
 class Population {
     constructor(geneAmount, popSize) {
@@ -9,15 +10,19 @@ class Population {
         for (let i = 0; i < this.popSize; i++) {
             this.organisms[i] = new Organism(geneAmount);
         }
+        this.emitter = new mitt();
+        PluginManager.registerEmitter('population', this.emitter);
     }
 
     evaluate(target) {
         // Find max fitness
+        this.emitter.emit('beforeAllFitnessCalculated', this);
         let maxFit = 0;        
         for (let i = 0; i < this.popSize; i++) {
             this.organisms[i].calcFitness(target);
             maxFit = Math.max(this.organisms[i].fitness, maxFit);
         }
+        this.emitter.emit('afterAllFitnessCalculated', this);
 
         // Map fitness between 0 and 1.        
         for (let i = 0; i < this.popSize; i++) {
