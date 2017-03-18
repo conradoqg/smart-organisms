@@ -85,9 +85,9 @@ class World {
         this.resetButton = p5i.createButton('reset');
         this.resetButton.parent(this.controlDiv);
         this.resetButton.mousePressed(() => {
-            this.config.seed = this.seedInput.value();
-            this.config.popSize = this.popSizeInput.value();
-            this.config.lifeSpan = this.lifeSpanInput.value();
+            this.config.seed = parseInt(this.seedInput.value());
+            this.config.popSize = parseInt(this.popSizeInput.value());
+            this.config.lifeSpan = parseInt(this.lifeSpanInput.value());
             this.setInitialState();
             this.setP5InitialState();
             this.emitter.emit('afterReset', this);
