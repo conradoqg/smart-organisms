@@ -41,141 +41,34 @@ class DNA {
 
 module.exports = DNA;
 },{}],2:[function(require,module,exports){
-let bitMap = null;
-let cachedCleanGraph = null;
-
-class FitnessMeasurer {
-    static method1(organism, target) {
-        let invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
-
-        if (organism.completed) {
-            return invertedDistance *= 10;
-        }
-        if (organism.crashed) {
-            return invertedDistance /= 10;
-        }
-    }
-
-    static method2(organism, target) {
-        // Distance constants
-        const maxDistance = Math.max(
-            p5i.createVector(0, 0).dist(organism.initialPos),
-            p5i.createVector(0, p5i.height).dist(organism.initialPos),
-            p5i.createVector(p5i.width, 0).dist(organism.initialPos),
-            p5i.createVector(p5i.width, p5i.height).dist(organism.initialPos)
-        );
-        const minDistance = 0;
-        let distance = this.astartDistance(organism.pos, target);
-        distance = (distance == null ? maxDistance : distance);
-
-        // Lifespane constants
-        const minLifespan = 0;
-        const maxLifespan = organism.dna.genesAmount;
-        let lifeSpan = organism.lifeSpan;
-
-        // Weights
-        const distanceWeight = 10;
-        const lifeSpaneWeight = 5;
-
-        // Calculates fitness generating a number between the min and max
-        let distanceFitness = (100 - p5i.map(distance, minDistance, maxDistance, 0, 100));
-        let lifeSpanFitness = p5i.map(lifeSpan, minLifespan, maxLifespan, 0, 100);
-
-        // Apply weights to the calculated fitness
-        let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
-
-        // Apply extra weight when the organism hits the goal
-        if (organism.completed) result *= 10;
-
-        return result;
-    }
-
-    static astartDistance(object, target) {
-        // Cache here is important because it takes a while to create a Graph
-        let graph;
-        if (cachedCleanGraph == null) {
-            cachedCleanGraph = new Graph(bitMap);
-        } else {
-            // Clean graph for next execution
-            cachedCleanGraph.init();
-            cachedCleanGraph.cleanDirty();
-        }
-        graph = cachedCleanGraph;
-
-        // Limits X and Y for both object according the size of the bitmap
-        let objectX = Math.min(Math.max(Math.round(object.x), 0), bitMap[0].length - 1);
-        let objectY = Math.min(Math.max(Math.round(object.y), 0), bitMap.length - 1);
-
-        let targetX = Math.min(Math.max(Math.round(target.x), 0), bitMap[0].length - 1);
-        let targetY = Math.min(Math.max(Math.round(target.y), 0), bitMap.length - 1);
-
-        // Setup the start and end points;
-        var start = graph.grid[objectX][objectY];
-        var end = graph.grid[targetX][targetY];
-
-        // If the start point is a wall, find the nearest non-wall node
-        if (start.isWall()) {
-            let findClosestNotWall = (nodes) => {
-                let nodeFound = null;
-                for (let i = 0; i < nodes.length; i++) {
-                    if (!nodes[i].isWall()) {
-                        nodeFound = nodes[i];
-                    }
-                }
-
-                if (!nodeFound) {
-                    let neighbors = [];
-                    for (let i = 0; i < nodes.length; i++) {
-                        neighbors = neighbors.concat(graph.neighbors(nodes[i]));
-                    }
-                    return findClosestNotWall(neighbors);
-                }
-
-                return nodeFound;
-            };
-            start = findClosestNotWall(graph.neighbors(start));
-        }
-
-        // Do a A* search from the starting point to the target point
-        var result = astar.search(graph, start, end, { closest: true });
-
-        // Draw found path (for debuggin purposes)
-        p5i.push();
-        p5i.stroke('yellow');
-        result.forEach((node) => {
-            p5i.point(node.x, node.y);
-        });
-        p5i.pop();
-
-        let distance = (result.length == 0 ? null : result.length);
-        return distance;
-    }
-
-    static get bitMap() { return bitMap; }
-    static set bitMap(value) { bitMap = value; }
-}
-
-module.exports = FitnessMeasurer;
-},{}],3:[function(require,module,exports){
 /**
  * Smart organisms.
  * 
  * based on the work of Daniel Shiffman: http://codingtra.in
  *  
  */
-const World = require('./world.js');
 
+require('./plugins/aStartFitness.js');require('./plugins/weightedFitness.js');
+
+let PluginManager = require('./pluginManager.js');
+PluginManager.activate('aStartFitness');
+
+const World = require('./world.js');
 const word = new World();
 
 p5.disableFriendlyErrors = true;
+
+if (uQuery('debug') != null) {
+    window.isDebuging = true;
+}
 
 new p5((p5iinstance) => {
     p5iinstance.setup = word.setup.bind(word);
     window.p5i = p5iinstance;
 }, 'canvas');
-},{"./world.js":6}],4:[function(require,module,exports){
+},{"./pluginManager.js":4,"./plugins/aStartFitness.js":5,"./plugins/weightedFitness.js":6,"./world.js":8}],3:[function(require,module,exports){
 const DNA = require('./dna.js');
-const FitnessMeasurer = require('./fitnessMeasurer.js');
+const PluginManager = require('./pluginManager.js');
 
 class Organism {
     constructor(dnaOrGeneAmount) {
@@ -189,10 +82,25 @@ class Organism {
         this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
         this.fitness = 0;
         this.lifeSpan = 0;
+        this.fitnessCalculatorFn = this.distance;
+        this.emitter = new mitt();
+        PluginManager.registerEmitter('organism', this.emitter);
+    }
+
+    distance(organism, target) {
+        let invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
+
+        if (organism.completed) {
+            return invertedDistance *= 10;
+        }
+        if (organism.crashed) {
+            return invertedDistance /= 10;
+        }
     }
 
     calcFitness(target) {
-        this.fitness = FitnessMeasurer.method2(this, target);
+        this.emitter.emit('beforeCalcFitness', this);
+        this.fitness = this.fitnessCalculatorFn(this, target);
     }
 
     mate(partner) {
@@ -236,8 +144,306 @@ class Organism {
 }
 
 module.exports = Organism;
-},{"./dna.js":1,"./fitnessMeasurer.js":2}],5:[function(require,module,exports){
+},{"./dna.js":1,"./pluginManager.js":4}],4:[function(require,module,exports){
+let emitters = new Map();
+let pluginEmitter = new mitt();
+
+class PluginManager {
+    static getEmitter() {
+        return pluginEmitter;
+    }
+
+    static registerEmitter(type, emitter) {
+        emitters.set(type, emitter);
+        emitter.on('*', (evt, ...args) => pluginEmitter.emit(type + '-' + evt, ...args));
+    }
+
+    static activate(pluginID) {
+        pluginEmitter.emit('pluginManager' + '-' + 'activate', pluginID);
+    }
+
+    static deactivate(pluginID) {
+        pluginEmitter.emit('pluginManager' + '-' + 'deactivate', pluginID);
+    }
+}
+
+module.exports = PluginManager;
+},{}],5:[function(require,module,exports){
+let PluginManager = require('../pluginManager.js');
+let emitter = PluginManager.getEmitter();
+
+let bitMap = null;
+let reducationRate = .50;
+let cachedCleanGraph = null;
+let calculatedPaths = null;
+
+emitter.on('pluginManager-activate', (pluginID) => {
+    if (pluginID == 'aStartFitness') {
+        emitter.on('world-afterRender', onWorldAfterRender);
+        emitter.on('world-reset', onReset);
+        emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.on('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
+    }
+});
+
+emitter.on('pluginManager-deactivate', (pluginID) => {
+    if (pluginID == 'aStartFitness') {
+        emitter.off('world-afterRender', onWorldAfterRender);
+        emitter.off('world-reset', onReset);
+        emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.off('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
+    }
+});
+
+let onWorldAfterRender = () => {
+    if (bitMap == null) {
+        // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
+        bitMap = [];
+        let wallColor = p5i.color(255);
+        p5i.loadPixels();
+        for (var x = 0; x < p5i.width; x++) {
+            let row = Array(p5i.height);
+            for (var y = 0; y < p5i.height; y++) {
+                var index = (x + y * p5i.width) * 4;
+                if (wallColor.levels[0] == p5i.pixels[index] &&
+                    wallColor.levels[1] == p5i.pixels[index + 1] &&
+                    wallColor.levels[2] == p5i.pixels[index + 2] &&
+                    wallColor.levels[3] == p5i.pixels[index + 3]) {
+                    row[y] = 0;
+                } else {
+                    row[y] = 1;
+                }
+            }
+            bitMap.push(row);
+        }
+
+        bitMap = resize2DArray(bitMap);
+    }
+
+    if (calculatedPaths != null) {
+        if (window.isDebuging) {
+            p5i.push();
+            p5i.stroke('yellow');
+            var xResolution = bitMap.length * reducationRate;
+            var xLenghtReduction = bitMap.length / xResolution;
+            calculatedPaths.forEach((path) => {
+                for (var i = 1; i < path.length; i++) {
+                    p5i.line(path[i - 1].x * xLenghtReduction, path[i - 1].y * xLenghtReduction, path[i].x * xLenghtReduction, path[i].y * xLenghtReduction);
+                }
+            });
+            p5i.pop();
+        }
+    }
+};
+
+let onReset = () => {
+    bitMap = true;
+};
+
+let onOrganismBeforeCalcFitness = (organism) => {
+    organism.fitnessCalculatorFn = calcFitness;
+};
+
+function resize2DArray(arrayToReduce) {
+    var xResolution = arrayToReduce.length * reducationRate;
+    var xLenghtReduction = arrayToReduce.length / xResolution;
+    var reducedBitmap = Array(xLenghtReduction);
+    for (var x = 0; x < arrayToReduce.length; x += xLenghtReduction) {
+        var reductionRow = [];
+        for (var xx = x; xx < x + xLenghtReduction; xx++) {
+            var yResolution = arrayToReduce[x].length * reducationRate;
+            var yLenghtReduction = arrayToReduce[x].length / yResolution;
+            var row = [];
+            for (var y = 0; y < arrayToReduce[x].length; y += yLenghtReduction) {
+                var reductionSum = 0;
+                for (var yy = y; yy < y + yLenghtReduction; yy++) {
+                    reductionSum += arrayToReduce[x][yy];
+                }
+                row[y / yLenghtReduction] = Math.floor(reductionSum / yLenghtReduction);
+            }
+            reductionRow.push(row);
+        }
+
+        reducedBitmap[x / xLenghtReduction] = Array(xResolution).fill(0);
+        for (var i = 0; i < reductionRow.length; i++) {
+            for (var ii = 0; ii < reductionRow[i].length; ii++) {
+                reducedBitmap[x / xLenghtReduction][ii] += reductionRow[i][ii];
+            }
+        }
+
+        for (var i = 0; i < reductionRow.length; i++) {
+            for (var ii = 0; ii < reductionRow[i].length; ii++) {
+                reducedBitmap[x / xLenghtReduction][ii] = Math.floor(reducedBitmap[x / xLenghtReduction][ii] / reductionRow.length);
+            }
+            break;
+        }
+    }
+
+    return reducedBitmap;
+}
+
+function calcFitness(organism, target) {
+    if (!calculatedPaths) calculatedPaths = [];
+    let distance = aStarDistance(organism.pos, target);
+    return weightedResult(organism, target, distance);
+}
+
+function weightedResult(organism, target, distance) {
+    // Distance constants
+    const maxDistance = Math.max(
+        p5i.createVector(0, 0).dist(organism.initialPos),
+        p5i.createVector(0, p5i.height).dist(organism.initialPos),
+        p5i.createVector(p5i.width, 0).dist(organism.initialPos),
+        p5i.createVector(p5i.width, p5i.height).dist(organism.initialPos)
+    );
+    const minDistance = 0;
+    distance = (distance == null ? maxDistance : distance);
+
+    // Lifespane constants
+    const minLifespan = 0;
+    const maxLifespan = organism.dna.genesAmount;
+    let lifeSpan = organism.lifeSpan;
+
+    // Weights
+    const distanceWeight = 10;
+    const lifeSpaneWeight = 5;
+
+    // Calculates fitness generating a number between the min and max
+    let distanceFitness = (100 - p5i.map(distance, minDistance, maxDistance, 0, 100));
+    let lifeSpanFitness = p5i.map(lifeSpan, minLifespan, maxLifespan, 0, 100);
+
+    // Apply weights to the calculated fitness
+    let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
+
+    // Apply extra weight when the organism hits the goal
+    if (organism.completed) result *= 10;
+
+    return result;
+}
+
+function aStarDistance(object, target) {
+
+    let xResolution = bitMap.length * reducationRate;
+    let xLenghtReduction = bitMap.length / xResolution;
+
+    // Cache here is important because it takes a while to create a Graph
+    let graph;
+    if (cachedCleanGraph == null) {
+        cachedCleanGraph = new Graph(bitMap);
+    } else {
+        // Clean graph for next execution
+        cachedCleanGraph.init();
+        cachedCleanGraph.cleanDirty();
+    }
+    graph = cachedCleanGraph;
+
+    // Limits X and Y for both object according the size of the bitmap
+    let objectX = Math.min(Math.max(Math.round(object.x / xLenghtReduction), 0), bitMap[0].length - 1);
+    let objectY = Math.min(Math.max(Math.round(object.y / xLenghtReduction), 0), bitMap.length - 1);
+
+    let targetX = Math.min(Math.max(Math.round(target.x / xLenghtReduction), 0), bitMap[0].length - 1);
+    let targetY = Math.min(Math.max(Math.round(target.y / xLenghtReduction), 0), bitMap.length - 1);
+
+    // Setup the start and end points;
+    var start = graph.grid[objectX][objectY];
+    var end = graph.grid[targetX][targetY];
+
+    // If the start point is a wall, find the nearest nonwall node
+    if (start.isWall()) {
+        let findClosestNonwall = (nodes) => {
+            let nodeFound = null;
+            for (let i = 0; i < nodes.length; i++) {
+                if (!nodes[i].isWall()) {
+                    nodeFound = nodes[i];
+                }
+            }
+
+            if (!nodeFound) {
+                let neighbors = [];
+                for (let i = 0; i < nodes.length; i++) {
+                    neighbors = neighbors.concat(graph.neighbors(nodes[i]));
+                }
+                return findClosestNonwall(neighbors);
+            }
+
+            return nodeFound;
+        };
+        start = findClosestNonwall(graph.neighbors(start));
+    }
+
+    // Do a A* search from the starting point to the target point
+    var result = astar.search(graph, start, end, { closest: true });
+
+    calculatedPaths.push(result);
+
+    let distance = (result.length == 0 ? null : result.length);
+    return distance;
+}
+
+let onAfterAllFitnessCalculated = () => {
+    calculatedPaths = null;
+};
+},{"../pluginManager.js":4}],6:[function(require,module,exports){
+let PluginManager = require('../pluginManager.js');
+let emitter = PluginManager.getEmitter();
+
+
+emitter.on('pluginManager-activate', (pluginID) => {
+    if (pluginID == 'weightedFitness') {
+        emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+    }
+});
+
+emitter.on('pluginManager-deactivate', (pluginID) => {
+    if (pluginID == 'weightedFitness') {
+        emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+    }
+});
+
+let onOrganismBeforeCalcFitness = (organism) => {
+    organism.fitnessCalculatorFn = calcFitness;
+};
+
+let calcFitness = (organism, target) => {
+    let distance = organism.distanceTo(target);
+    return weightedResult(organism, target, distance);
+};
+
+function weightedResult(organism, target, distance) {
+    // Distance constants
+    const maxDistance = Math.max(
+        p5i.createVector(0, 0).dist(organism.initialPos),
+        p5i.createVector(0, p5i.height).dist(organism.initialPos),
+        p5i.createVector(p5i.width, 0).dist(organism.initialPos),
+        p5i.createVector(p5i.width, p5i.height).dist(organism.initialPos)
+    );
+    const minDistance = 0;
+    distance = (distance == null ? maxDistance : distance);
+
+    // Lifespane constants
+    const minLifespan = 0;
+    const maxLifespan = organism.dna.genesAmount;
+    let lifeSpan = organism.lifeSpan;
+
+    // Weights
+    const distanceWeight = 10;
+    const lifeSpaneWeight = 5;
+
+    // Calculates fitness generating a number between the min and max
+    let distanceFitness = (100 - p5i.map(distance, minDistance, maxDistance, 0, 100));
+    let lifeSpanFitness = p5i.map(lifeSpan, minLifespan, maxLifespan, 0, 100);
+
+    // Apply weights to the calculated fitness
+    let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
+
+    // Apply extra weight when the organism hits the goal
+    if (organism.completed) result *= 10;
+
+    return result;
+}
+},{"../pluginManager.js":4}],7:[function(require,module,exports){
 const Organism = require('./organism.js');
+const PluginManager = require('./pluginManager.js');
 
 class Population {
     constructor(geneAmount, popSize) {
@@ -248,29 +454,46 @@ class Population {
         for (let i = 0; i < this.popSize; i++) {
             this.organisms[i] = new Organism(geneAmount);
         }
+        this.emitter = new mitt();
+        PluginManager.registerEmitter('population', this.emitter);
     }
 
     evaluate(target) {
-        // Find max fitness
-        let maxFit = 0;
-        for (let i = 0; i < this.popSize; i++) {
-            this.organisms[i].calcFitness(target);
-            maxFit = Math.max(this.organisms[i].fitness, maxFit);
-        }
+        this.emitter.emit('beforeAllFitnessCalculated', this);
 
-        // Map fitness between 0 and 1.        
-        for (let i = 0; i < this.popSize; i++) {
-            this.organisms[i].fitness /= maxFit;
-        }
+        let calcFitnessResults = this.organisms.map((organism) => {
+            return new Promise((resolve) => {
+                setImmediate(() => {
+                    resolve(organism.calcFitness(target));
+                });
+            });
+        });
 
-        // Adds the organisms N times to mating pool according its fitness proportional value. Multiplies N by 100 to give a minimum of 1 options for the lowest ranked organism
-        this.matingPool = [];
-        for (let i = 0; i < this.popSize; i++) {
-            let n = this.organisms[i].fitness * 100;
-            for (let j = 0; j < n; j++) {
-                this.matingPool.push(this.organisms[i]);
-            }
-        }
+        return Promise
+            .all(calcFitnessResults)
+            .then(() => {
+                // Find max fitness
+                let maxFit = 0;
+
+                for (let i = 0; i < this.organisms.length; i++) {
+                    maxFit = Math.max(this.organisms[i].fitness, maxFit);
+                }
+                this.emitter.emit('afterAllFitnessCalculated', this);
+
+                // Map fitness between 0 and 1.        
+                for (let i = 0; i < this.organisms.length; i++) {
+                    this.organisms[i].fitness /= maxFit;
+                }
+
+                // Adds the organisms N times to mating pool according its fitness proportional value. Multiplies N by 100 to give a minimum of 1 options for the lowest ranked organism
+                this.matingPool = [];
+                for (let i = 0; i < this.organisms.length; i++) {
+                    let n = this.organisms[i].fitness * 100;
+                    for (let j = 0; j < n; j++) {
+                        this.matingPool.push(this.organisms[i]);
+                    }
+                }
+            });
     }
 
     selection() {
@@ -287,17 +510,26 @@ class Population {
 }
 
 module.exports = Population;
-},{"./organism.js":4}],6:[function(require,module,exports){
+},{"./organism.js":3,"./pluginManager.js":4}],8:[function(require,module,exports){
 const Population = require('./population.js');
-const FitnessMeasurer = require('./fitnessMeasurer.js');
+const PluginManager = require('./pluginManager.js');
 
 class World {
     constructor() {
         this.setInitialState();
+        this.config = {
+            width: 600,
+            height: 600,
+            FPS: 60,
+            popSize: 100,
+            lifeSpan: 1600,
+            seed: 10,
+            speed: 5
+        };
         this.target = {
             x: this.config.width / 2,
             y: 50,
-            diameter: 16
+            diameter: 20
         };
         this.obstacle = {
             x: 150,
@@ -305,6 +537,8 @@ class World {
             width: 300,
             height: 10
         };
+        this.emitter = new mitt();
+        PluginManager.registerEmitter('world', this.emitter);
     }
 
     setup() {
@@ -342,6 +576,15 @@ class World {
         this.lifeSpanInput.size(30);
         this.lifeSpanInput.parent(this.settingsDiv);
 
+        p5i.createElement('br').parent(this.settingsDiv);
+        p5i.createElement('label', 'Speed: ').parent(this.settingsDiv);
+        this.speedSlider = p5i.createSlider(0, 200, this.config.speed);
+        this.speedSlider.style('width', '210px');
+        this.speedSlider.parent(this.settingsDiv);
+        this.speedSlider.mouseMoved(() => {
+            this.config.speed = this.speedSlider.value();
+        });
+
         let controlContainer = p5i.select('#controlContainer');
         controlContainer.style('width', this.config.width.toString() + 'px');
         controlContainer.style('height', this.config.height.toString() + 'px');
@@ -355,30 +598,22 @@ class World {
         this.resetButton = p5i.createButton('reset');
         this.resetButton.parent(this.controlDiv);
         this.resetButton.mousePressed(() => {
-            this.setInitialState(this.seedInput.value(), this.popSizeInput.value(), this.lifeSpanInput.value());
+            this.config.seed = parseInt(this.seedInput.value());
+            this.config.popSize = parseInt(this.popSizeInput.value());
+            this.config.lifeSpan = parseInt(this.lifeSpanInput.value());
+            this.setInitialState();
             this.setP5InitialState();
+            this.emitter.emit('afterReset', this);
         });
 
         // p5        
         p5i.draw = this.render.bind(this);
 
         // Main update loop
-        let loop = () => {
-            this.update();
-            setTimeout(loop);
-        };
-        loop();
+        this.update();
     }
 
-    setInitialState(seed, popSize, lifeSpan) {
-        this.config = {
-            width: 600,
-            height: 600,
-            FPS: 60,
-            popSize: (popSize == null ? 100 : parseInt(popSize)),
-            lifeSpan: (lifeSpan == null ? 1600 : parseInt(lifeSpan)),
-            seed: (seed == null ? 10 : parseInt(seed))
-        };
+    setInitialState() {
         this.population = null;
         this.lifeSpanTimer = 0;
         this.generation = 1;
@@ -397,64 +632,81 @@ class World {
     }
 
     update() {
-        if (!this.paused) {
-            if (this.population) {
-                this.lifeSpanTimer++;
+        Promise
+            .resolve()
+            .then(() => {
+                if (!this.paused) {
+                    if (this.population) {
+                        this.lifeSpanTimer++;
 
-                // Statistics counters
-                let deaths = 0;
-                let hits = 0;
-                let lifeSpanSum = 0;
-                let distanceSum = 0;
+                        // Statistics counters
+                        let deaths = 0;
+                        let hits = 0;
+                        let lifeSpanSum = 0;
+                        let distanceSum = 0;
 
-                // Update organisms
-                for (let i = 0; i < this.population.organisms.length; i++) {
-                    let organism = this.population.organisms[i];
-                    organism.update(this.lifeSpanTimer);
+                        // Update organisms
+                        for (let i = 0; i < this.population.organisms.length; i++) {
+                            let organism = this.population.organisms[i];
+                            organism.update(this.lifeSpanTimer);
 
-                    // Target
-                    if (organism.collidesCircle(this.target)) {
-                        organism.completed = true;
+                            // Target
+                            if (organism.collidesCircle(this.target)) {
+                                organism.completed = true;
+                            }
+
+                            // Off-screen
+                            if (!organism.collidesRect({ x: 0, y: 0, width: this.config.width, height: this.config.height })) {
+                                organism.crashed = true;
+                            }
+
+                            // Obstacle
+                            if (organism.collidesRect(this.obstacle)) {
+                                organism.crashed = true;
+                            }
+
+                            // Statistics
+                            if (organism.crashed) deaths++;
+                            if (organism.completed) hits++;
+
+                            lifeSpanSum += organism.lifeSpan;
+                            distanceSum += organism.distanceTo(this.target);
+                            this.statistics.avgLifeSpans = lifeSpanSum / i;
+                            this.statistics.avgDistance = distanceSum / i;
+                        }
+
+                        // Generates a new population if the generation run out of time
+                        if (this.lifeSpanTimer == this.config.lifeSpan || (deaths + hits) == this.config.popSize) {
+                            // Historic statistics
+                            this.statistics.avgLifeSpansHist = (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? [...this.statistics.avgLifeSpansHist, this.statistics.avgLifeSpans.toFixed(2)] : [this.statistics.avgLifeSpans.toFixed(2)]);
+                            this.statistics.avgDistanceHist = (typeof (this.statistics.avgDistanceHist) != 'undefined' ? [...this.statistics.avgDistanceHist, this.statistics.avgDistance.toFixed(2)] : [this.statistics.avgDistance.toFixed(2)]);
+                            this.statistics.deathsHist = (typeof (this.statistics.deathsHist) != 'undefined' ? [...this.statistics.deathsHist, deaths] : [deaths]);
+                            this.statistics.hitsHist = (typeof (this.statistics.hitsHist) != 'undefined' ? [...this.statistics.hitsHist, hits] : [hits]);
+
+                            if (hits > 0 && typeof (this.statistics.firstHit) == 'undefined') this.statistics.firstHit = this.generation;
+                            if (hits >= 50 && typeof (this.statistics.fiftiethHit) == 'undefined') this.statistics.fiftiethHit = this.generation;
+                            if (typeof (this.statistics.maxHits) == 'undefined') {
+                                this.statistics.maxHits = hits;
+                            } else {
+                                this.statistics.maxHits = Math.max(hits, this.statistics.maxHits);
+                            }
+
+                            // Population evaluation and selection
+                            return this.population.evaluate(this.target).then(() => {
+                                this.population.selection();
+                                this.generation++;
+                                this.lifeSpanTimer = 0;
+                            });
+                        }
                     }
-
-                    // Off-screen
-                    if (!organism.collidesRect({ x: 0, y: 0, width: this.config.width, height: this.config.height })) {
-                        organism.crashed = true;
-                    }
-
-                    // Obstacle
-                    if (organism.collidesRect(this.obstacle)) {
-                        organism.crashed = true;
-                    }
-
-                    // Statistics
-                    if (organism.crashed) deaths++;
-                    if (organism.completed) hits++;
-
-                    lifeSpanSum += organism.lifeSpan;
-                    distanceSum += organism.distanceTo(this.target);
-                    this.statistics.avgLifeSpans = lifeSpanSum / i;
-                    this.statistics.avgDistance = distanceSum / i;
                 }
-
-                // Generates a new population if the generation run out of time
-                if (this.lifeSpanTimer == this.config.lifeSpan || (deaths + hits) == this.config.popSize) {
-                    // Historic statistics
-                    this.statistics.avgLifeSpansHist = (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? [...this.statistics.avgLifeSpansHist, this.statistics.avgLifeSpans.toFixed(2)] : [this.statistics.avgLifeSpans.toFixed(2)]);
-                    this.statistics.avgDistanceHist = (typeof (this.statistics.avgDistanceHist) != 'undefined' ? [...this.statistics.avgDistanceHist, this.statistics.avgDistance.toFixed(2)] : [this.statistics.avgDistance.toFixed(2)]);
-                    this.statistics.deathsHist = (typeof (this.statistics.deathsHist) != 'undefined' ? [...this.statistics.deathsHist, deaths] : [deaths]);
-                    this.statistics.hitsHist = (typeof (this.statistics.hitsHist) != 'undefined' ? [...this.statistics.hitsHist, hits] : [hits]);
-
-                    if (hits > 0 && typeof (this.statistics.firstHit) == 'undefined') this.statistics.firstHit = this.generation;
-
-                    // Population evaluation and selection
-                    this.population.evaluate(this.target);
-                    this.population.selection();
-                    this.generation++;
-                    this.lifeSpanTimer = 0;
+            }).then(() => {
+                if (this.config.speed <= 1) {
+                    setImmediate(() => { this.update(); });
+                } else {
+                    setTimeout(() => { this.update(); }, this.config.speed);
                 }
-            }
-        }
+            });
     }
 
     render() {
@@ -468,7 +720,10 @@ class World {
                 '<br/> Hits: ' + this.population.organisms.reduce((hits, organism) => { return hits + (organism.completed ? 1 : 0); }, 0) + ' ' + (typeof (this.statistics.hitsHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.hitsHist.slice(-250).join(',') + '"/>' : '') +
                 (typeof (this.statistics.avgLifeSpans) != 'undefined' ? '<br/> Avg Life Span: ' + this.statistics.avgLifeSpans.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgLifeSpansHist.slice(-250).join(',') + '"/>' : '') +
                 (typeof (this.statistics.avgDistance) != 'undefined' ? '<br/> Avg Distance: ' + this.statistics.avgDistance.toFixed(2) : '') + ' ' + (typeof (this.statistics.avgDistanceHist) != 'undefined' ? '<img src="http://chart.googleapis.com/chart?chs=50x14&cht=ls&chf=bg,s,00000000&chco=0077CC&chds=a&chd=t:' + this.statistics.avgDistanceHist.slice(-250).join(',') + '"/>' : '') +
-                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> 1st Hit: Gen ' + this.statistics.firstHit : '')
+                (typeof (this.statistics.maxHits) != 'undefined' ? '<br/> Max Hits: ' + this.statistics.maxHits : '') +
+                (typeof (this.statistics.firstHit) != 'undefined' ? '<br/> 1st Hit: Gen ' + this.statistics.firstHit : '') +
+                (typeof (this.statistics.fiftiethHit) != 'undefined' ? '<br/> 50th Hit: Gen ' + this.statistics.fiftiethHit : '')
+
             );
 
             // Target
@@ -479,37 +734,17 @@ class World {
             p5i.fill(255);
             p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
 
-            // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
-            if (FitnessMeasurer.bitMap == null) {
-                let bitMap = [];
-                p5i.loadPixels();
-                for (var x = 0; x < p5i.width; x++) {
-                    let row = Array(p5i.height);
-                    for (var y = 0; y < p5i.height; y++) {
-                        var index = (x + y * p5i.width) * 4;
-                        if (p5i.color(255).levels[0] == p5i.pixels[index] &&
-                            p5i.color(255).levels[1] == p5i.pixels[index + 1] &&
-                            p5i.color(255).levels[2] == p5i.pixels[index + 2] &&
-                            p5i.color(255).levels[3] == p5i.pixels[index + 3]) {
-                            row[y] = 0;
-                        } else {
-                            row[y] = 1;
-                        }
-                    }
-                    bitMap.push(row);
-                }
-                FitnessMeasurer.bitMap = bitMap;
-            }
-
             if (this.population) {
                 for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
                     organism.render();
                 }
             }
+
+            this.emitter.emit('afterRender', this);
         }
     }
 }
 
 module.exports = World;
-},{"./fitnessMeasurer.js":2,"./population.js":5}]},{},[3]);
+},{"./pluginManager.js":4,"./population.js":7}]},{},[2]);
