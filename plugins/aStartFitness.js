@@ -11,7 +11,7 @@ emitter.on('pluginManager-activate', (pluginID) => {
     if (pluginID == 'aStartFitness') {
         emitter.on('world-afterRender', onWorldAfterRender);
         emitter.on('world-reset', onReset);
-        emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);        
+        emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
     }
 });
 
@@ -19,7 +19,7 @@ emitter.on('pluginManager-deactivate', (pluginID) => {
     if (pluginID == 'aStartFitness') {
         emitter.off('world-afterRender', onWorldAfterRender);
         emitter.off('world-reset', onReset);
-        emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);        
+        emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
     }
 });
 

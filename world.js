@@ -97,15 +97,7 @@ class World {
         p5i.draw = this.render.bind(this);
 
         // Main update loop
-        let loop = () => {
-            this.update();
-            if (this.config.speed <= 1) {
-                setImmediate(loop);
-            } else {
-                setTimeout(loop, this.config.speed);
-            }
-        };
-        loop();
+        this.update();
     }
 
     setInitialState() {
@@ -113,7 +105,7 @@ class World {
         this.lifeSpanTimer = 0;
         this.generation = 1;
         this.paused = false;
-        this.statistics = {};        
+        this.statistics = {};
     }
 
     setP5InitialState() {
@@ -127,70 +119,81 @@ class World {
     }
 
     update() {
-        if (!this.paused) {
-            if (this.population) {
-                this.lifeSpanTimer++;
+        Promise
+            .resolve()
+            .then(() => {
+                if (!this.paused) {
+                    if (this.population) {
+                        this.lifeSpanTimer++;
 
-                // Statistics counters
-                let deaths = 0;
-                let hits = 0;
-                let lifeSpanSum = 0;
-                let distanceSum = 0;
+                        // Statistics counters
+                        let deaths = 0;
+                        let hits = 0;
+                        let lifeSpanSum = 0;
+                        let distanceSum = 0;
 
-                // Update organisms
-                for (let i = 0; i < this.population.organisms.length; i++) {
-                    let organism = this.population.organisms[i];
-                    organism.update(this.lifeSpanTimer);
+                        // Update organisms
+                        for (let i = 0; i < this.population.organisms.length; i++) {
+                            let organism = this.population.organisms[i];
+                            organism.update(this.lifeSpanTimer);
 
-                    // Target
-                    if (organism.collidesCircle(this.target)) {
-                        organism.completed = true;
+                            // Target
+                            if (organism.collidesCircle(this.target)) {
+                                organism.completed = true;
+                            }
+
+                            // Off-screen
+                            if (!organism.collidesRect({ x: 0, y: 0, width: this.config.width, height: this.config.height })) {
+                                organism.crashed = true;
+                            }
+
+                            // Obstacle
+                            if (organism.collidesRect(this.obstacle)) {
+                                organism.crashed = true;
+                            }
+
+                            // Statistics
+                            if (organism.crashed) deaths++;
+                            if (organism.completed) hits++;
+
+                            lifeSpanSum += organism.lifeSpan;
+                            distanceSum += organism.distanceTo(this.target);
+                            this.statistics.avgLifeSpans = lifeSpanSum / i;
+                            this.statistics.avgDistance = distanceSum / i;
+                        }
+
+                        // Generates a new population if the generation run out of time
+                        if (this.lifeSpanTimer == this.config.lifeSpan || (deaths + hits) == this.config.popSize) {
+                            // Historic statistics
+                            this.statistics.avgLifeSpansHist = (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? [...this.statistics.avgLifeSpansHist, this.statistics.avgLifeSpans.toFixed(2)] : [this.statistics.avgLifeSpans.toFixed(2)]);
+                            this.statistics.avgDistanceHist = (typeof (this.statistics.avgDistanceHist) != 'undefined' ? [...this.statistics.avgDistanceHist, this.statistics.avgDistance.toFixed(2)] : [this.statistics.avgDistance.toFixed(2)]);
+                            this.statistics.deathsHist = (typeof (this.statistics.deathsHist) != 'undefined' ? [...this.statistics.deathsHist, deaths] : [deaths]);
+                            this.statistics.hitsHist = (typeof (this.statistics.hitsHist) != 'undefined' ? [...this.statistics.hitsHist, hits] : [hits]);
+
+                            if (hits > 0 && typeof (this.statistics.firstHit) == 'undefined') this.statistics.firstHit = this.generation;
+                            if (hits >= 50 && typeof (this.statistics.fiftiethHit) == 'undefined') this.statistics.fiftiethHit = this.generation;
+                            if (typeof (this.statistics.maxHits) == 'undefined') {
+                                this.statistics.maxHits = hits;
+                            } else {
+                                this.statistics.maxHits = Math.max(hits, this.statistics.maxHits);
+                            }
+
+                            // Population evaluation and selection
+                            return this.population.evaluate(this.target).then(() => {
+                                this.population.selection();
+                                this.generation++;
+                                this.lifeSpanTimer = 0;
+                            });
+                        }
                     }
-
-                    // Off-screen
-                    if (!organism.collidesRect({ x: 0, y: 0, width: this.config.width, height: this.config.height })) {
-                        organism.crashed = true;
-                    }
-
-                    // Obstacle
-                    if (organism.collidesRect(this.obstacle)) {
-                        organism.crashed = true;
-                    }
-
-                    // Statistics
-                    if (organism.crashed) deaths++;
-                    if (organism.completed) hits++;
-
-                    lifeSpanSum += organism.lifeSpan;
-                    distanceSum += organism.distanceTo(this.target);
-                    this.statistics.avgLifeSpans = lifeSpanSum / i;
-                    this.statistics.avgDistance = distanceSum / i;
                 }
-
-                // Generates a new population if the generation run out of time
-                if (this.lifeSpanTimer == this.config.lifeSpan || (deaths + hits) == this.config.popSize) {
-                    // Historic statistics
-                    this.statistics.avgLifeSpansHist = (typeof (this.statistics.avgLifeSpansHist) != 'undefined' ? [...this.statistics.avgLifeSpansHist, this.statistics.avgLifeSpans.toFixed(2)] : [this.statistics.avgLifeSpans.toFixed(2)]);
-                    this.statistics.avgDistanceHist = (typeof (this.statistics.avgDistanceHist) != 'undefined' ? [...this.statistics.avgDistanceHist, this.statistics.avgDistance.toFixed(2)] : [this.statistics.avgDistance.toFixed(2)]);
-                    this.statistics.deathsHist = (typeof (this.statistics.deathsHist) != 'undefined' ? [...this.statistics.deathsHist, deaths] : [deaths]);
-                    this.statistics.hitsHist = (typeof (this.statistics.hitsHist) != 'undefined' ? [...this.statistics.hitsHist, hits] : [hits]);
-
-                    if (hits > 0 && typeof (this.statistics.firstHit) == 'undefined') this.statistics.firstHit = this.generation;
-                    if (hits >= 50 && typeof (this.statistics.fiftiethHit) == 'undefined') this.statistics.fiftiethHit = this.generation;
-                    if (typeof (this.statistics.maxHits) == 'undefined') {
-                        this.statistics.maxHits = hits;
-                    } else {
-                        this.statistics.maxHits = Math.max(hits, this.statistics.maxHits);
-                    }
-
-                    // Population evaluation and selection
-                    this.population.evaluate(this.target);
-                    this.population.selection();
-                    this.generation++;
-                    this.lifeSpanTimer = 0;
-                }                
-            }
-        }
+            }).then(() => {
+                if (this.config.speed <= 1) {
+                    setImmediate(() => { this.update(); });
+                } else {
+                    setTimeout(() => { this.update(); }, this.config.speed);
+                }
+            });
     }
 
     render() {
@@ -216,14 +219,14 @@ class World {
 
             // Obstacle
             p5i.fill(255);
-            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);            
+            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
 
             if (this.population) {
                 for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
                     organism.render();
                 }
-            }            
+            }
 
             this.emitter.emit('afterRender', this);
         }

@@ -14,7 +14,7 @@ emitter.on('pluginManager-deactivate', (pluginID) => {
     }
 });
 
-let onOrganismBeforeCalcFitness = (organism) => {    
+let onOrganismBeforeCalcFitness = (organism) => {
     organism.fitnessCalculatorFn = calcFitness;
 };
 
