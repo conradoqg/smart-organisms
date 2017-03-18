@@ -66,7 +66,7 @@ let onWorldAfterRender = () => {
 };
 
 let onReset = () => {
-    bitMap = true;
+    bitMap = null;
 };
 
 let onOrganismBeforeCalcFitness = (organism) => {
