@@ -50,9 +50,6 @@ module.exports = DNA;
 
 require('./plugins/aStartFitness.js');require('./plugins/weightedFitness.js');
 
-let PluginManager = require('./pluginManager.js');
-PluginManager.activate('aStartFitness');
-
 const World = require('./world.js');
 const word = new World();
 
@@ -66,7 +63,7 @@ new p5((p5iinstance) => {
     p5iinstance.setup = word.setup.bind(word);
     window.p5i = p5iinstance;
 }, 'canvas');
-},{"./pluginManager.js":4,"./plugins/aStartFitness.js":5,"./plugins/weightedFitness.js":6,"./world.js":8}],3:[function(require,module,exports){
+},{"./plugins/aStartFitness.js":5,"./plugins/weightedFitness.js":6,"./world.js":8}],3:[function(require,module,exports){
 const DNA = require('./dna.js');
 const PluginManager = require('./pluginManager.js');
 
@@ -237,7 +234,7 @@ let onWorldAfterRender = () => {
 };
 
 let onReset = () => {
-    bitMap = true;
+    bitMap = null;
 };
 
 let onOrganismBeforeCalcFitness = (organism) => {
@@ -387,26 +384,47 @@ let onAfterAllFitnessCalculated = () => {
 let PluginManager = require('../pluginManager.js');
 let emitter = PluginManager.getEmitter();
 
+let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
     if (pluginID == 'weightedFitness') {
+        emitter.on('world-afterRender', onWorldAfterRender);
         emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.on('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
 });
 
 emitter.on('pluginManager-deactivate', (pluginID) => {
     if (pluginID == 'weightedFitness') {
+        emitter.off('world-afterRender', onWorldAfterRender);
         emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
+        emitter.off('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
 });
+
+let onWorldAfterRender = () => {
+    if (calculatedPaths != null) {
+        if (window.isDebuging) {
+            p5i.push();
+            p5i.stroke('yellow');
+            calculatedPaths.forEach((path) => {
+                p5i.line(path.organism.pos.x, path.organism.pos.y, path.target.x, path.target.y);
+            });
+            p5i.pop();
+        }
+    }
+};
 
 let onOrganismBeforeCalcFitness = (organism) => {
     organism.fitnessCalculatorFn = calcFitness;
 };
 
 let calcFitness = (organism, target) => {
+    if (!calculatedPaths) calculatedPaths = [];
     let distance = organism.distanceTo(target);
-    return weightedResult(organism, target, distance);
+    let result = weightedResult(organism, target, distance);
+    calculatedPaths.push({ organism, target });
+    return result;
 };
 
 function weightedResult(organism, target, distance) {
@@ -441,6 +459,10 @@ function weightedResult(organism, target, distance) {
 
     return result;
 }
+
+let onAfterAllFitnessCalculated = () => {
+    calculatedPaths = null;
+};
 },{"../pluginManager.js":4}],7:[function(require,module,exports){
 const Organism = require('./organism.js');
 const PluginManager = require('./pluginManager.js');
@@ -539,6 +561,7 @@ class World {
         };
         this.emitter = new mitt();
         PluginManager.registerEmitter('world', this.emitter);
+        PluginManager.activate('aStartFitness');
     }
 
     setup() {
@@ -597,14 +620,26 @@ class World {
         });
         this.resetButton = p5i.createButton('reset');
         this.resetButton.parent(this.controlDiv);
-        this.resetButton.mousePressed(() => {
-            this.config.seed = parseInt(this.seedInput.value());
-            this.config.popSize = parseInt(this.popSizeInput.value());
-            this.config.lifeSpan = parseInt(this.lifeSpanInput.value());
-            this.setInitialState();
-            this.setP5InitialState();
-            this.emitter.emit('afterReset', this);
+        this.resetButton.mousePressed(this.reset.bind(this));
+
+        p5i.createElement('br').parent(this.settingsDiv);
+
+        p5i.createElement('label', 'Fitness Calculator: ').parent(this.settingsDiv);
+        this.fitnessCalculatorSelect = p5i.createSelect();
+        this.fitnessCalculatorSelect.option('A*');
+        this.fitnessCalculatorSelect.option('Weighted');
+        this.fitnessCalculatorSelect.changed(() => {
+            let selected = this.fitnessCalculatorSelect.value();
+
+            if (selected == 'A*') {
+                PluginManager.deactivate('weightedFitness');
+                PluginManager.activate('aStartFitness');                
+            } else {
+                PluginManager.deactivate('aStartFitness');
+                PluginManager.activate('weightedFitness');                
+            }
         });
+        this.fitnessCalculatorSelect.parent(this.settingsDiv);
 
         // p5        
         p5i.draw = this.render.bind(this);
@@ -613,7 +648,7 @@ class World {
         this.update();
     }
 
-    setInitialState() {
+    setInitialState() {        
         this.population = null;
         this.lifeSpanTimer = 0;
         this.generation = 1;
@@ -629,6 +664,15 @@ class World {
         p5i.randomSeed(this.config.seed);
 
         this.population = new Population(this.config.lifeSpan, this.config.popSize);
+    }
+
+    reset() {
+        this.config.seed = parseInt(this.seedInput.value());
+        this.config.popSize = parseInt(this.popSizeInput.value());
+        this.config.lifeSpan = parseInt(this.lifeSpanInput.value());
+        this.setInitialState();
+        this.setP5InitialState();
+        this.emitter.emit('afterReset', this);
     }
 
     update() {
