@@ -3,9 +3,9 @@ const PluginManager = require('./pluginManager.js');
 
 class Organism {
     constructor(dnaOrGeneAmount) {
-        this.pos = p5i.createVector(p5i.width / 2, p5i.height);
-        this.initialPos = this.pos.copy();
         this.size = { width: 25, height: 5 };
+        this.pos = p5i.createVector((p5i.width / 2) - (this.size.width / 2), p5i.height - 30);
+        this.initialPos = this.pos.copy();
         this.vel = p5i.createVector();
         this.acc = p5i.createVector();
         this.completed = false;
@@ -51,11 +51,14 @@ class Organism {
     }
 
     collidesCircle(target) {
-        return p5i.collidePointCircle(this.pos.x, this.pos.y, target.x, target.y, target.diameter);
+        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
+        return p5i.collideCirclePoly(target.x, target.y, target.diameter, [myCoors.v1, myCoors.v2, myCoors.v3, myCoors.v4]);
     }
 
-    collidesRect(target) {
-        return p5i.collidePointRect(this.pos.x, this.pos.y, target.x, target.y, target.width, target.height);
+    collidesRect(target, inside = false) {
+        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
+        let targetCoors = getCoorsFromRect({ x: target.x, y: target.y }, { width: target.width, height: target.height });
+        return p5i.collidePolyPoly([targetCoors.v1, targetCoors.v2, targetCoors.v3, targetCoors.v4], [myCoors.v1, myCoors.v2, myCoors.v3, myCoors.v4], inside);
     }
 
     distanceTo(target) {
@@ -66,12 +69,31 @@ class Organism {
         p5i.push();
         p5i.noStroke();
         p5i.fill(255, 150);
-        p5i.translate(this.pos.x, this.pos.y);
-        p5i.rotate(this.vel.heading());
-        p5i.rectMode(p5i.CENTER);
-        p5i.rect(0, 0, this.size.width, this.size.height);
+
+        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
+
+        p5i.quad(myCoors.v1.x, myCoors.v1.y, myCoors.v2.x, myCoors.v2.y, myCoors.v3.x, myCoors.v3.y, myCoors.v4.x, myCoors.v4.y);
+
         p5i.pop();
     }
 }
+
+let getCoorsFromRect = (pos, size, angle) => {
+    var coors = {
+        v1: p5i.createVector(pos.x, pos.y),
+        v2: p5i.createVector(pos.x, pos.y + size.height),
+        v3: p5i.createVector(pos.x + size.width, pos.y + size.height),
+        v4: p5i.createVector(pos.x + size.width, pos.y),
+    };
+
+    if (angle != null) {
+        let midV = p5i.createVector(coors.v1.x + ((coors.v3.x - coors.v1.x) / 2), coors.v1.y + ((coors.v3.y - coors.v1.y) / 2));
+        Object.keys(coors).map(function (key) {
+            return coors[key] = coors[key].rotateOnOrigin(midV, angle);
+        }, this);
+    }
+
+    return coors;
+};
 
 module.exports = Organism;

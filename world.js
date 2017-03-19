@@ -98,10 +98,10 @@ class World {
 
             if (selected == 'A*') {
                 PluginManager.deactivate('weightedFitness');
-                PluginManager.activate('aStartFitness');                
+                PluginManager.activate('aStartFitness');
             } else {
                 PluginManager.deactivate('aStartFitness');
-                PluginManager.activate('weightedFitness');                
+                PluginManager.activate('weightedFitness');
             }
         });
         this.fitnessCalculatorSelect.parent(this.settingsDiv);
@@ -113,7 +113,7 @@ class World {
         this.update();
     }
 
-    setInitialState() {        
+    setInitialState() {
         this.population = null;
         this.lifeSpanTimer = 0;
         this.generation = 1;
@@ -165,7 +165,7 @@ class World {
                             }
 
                             // Off-screen
-                            if (!organism.collidesRect({ x: 0, y: 0, width: this.config.width, height: this.config.height })) {
+                            if (organism.collidesRect({ x: 0, y: 0, width: this.config.width, height: this.config.height })) {
                                 organism.crashed = true;
                             }
 

@@ -14,13 +14,28 @@
 <body>
     <script type='text/javascript'>
         window.p5i = window;
+        p5.Vector.prototype.rotateOnOrigin = function (origin, angle) {
+            var newHeading = angle;
+            if (this.p5) {
+                if (this.p5._angleMode === this.p5.DEGREES) {
+                    newHeading = polarGeometry.degreesToRadians(newHeading);
+                }
+            }
+            var newX = Math.cos(angle) * (this.x - origin.x) - Math.sin(angle) * (this.y - origin.y) + origin.x;
+            var newY = Math.sin(angle) * (this.x - origin.x) + Math.cos(angle) * (this.y - origin.y) + origin.y;
+            this.x = newX;
+            this.y = newY;
+            return this;
+        }
+
         function setup() {
             createCanvas(600, 600);
-            frameRate(0.1);
+            frameRate(1);
             pixelDensity(1);
         }
 
         function draw() {
+            p5i.push()
             background(0);
             fill(255);
             noStroke();
@@ -36,6 +51,16 @@
                 width: 300,
                 height: 10
             };
+            organism = {
+                pos: {
+                    x: p5i.width / 2,
+                    y: p5i.height
+                },
+                size: {
+                    w: 25,
+                    h: 5
+                }
+            }
 
             // Target
             p5i.fill(p5i.color('red'));
@@ -45,148 +70,128 @@
             p5i.fill(255);
             p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
 
-            let wallColor = p5i.color(255);
+            let pos = p5i.createVector(organism.pos.x, organism.pos.x);
+            let vel = p5i.createVector();
+            let acc = p5i.createVector();
+            acc.add(p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1)));
+            vel.add(acc);
+            pos.add(vel);
+            acc.mult(0);
+            vel.limit(4);
 
-            let bitMap = [];
-            p5i.loadPixels();
-            for (var x = 0; x < p5i.width; x++) {
-                let row = Array(p5i.height);
-                for (var y = 0; y < p5i.height; y++) {
-                    var index = (x + y * p5i.width) * 4;
-                    if (wallColor.levels[0] == p5i.pixels[index] &&
-                        wallColor.levels[1] == p5i.pixels[index + 1] &&
-                        wallColor.levels[2] == p5i.pixels[index + 2] &&
-                        wallColor.levels[3] == p5i.pixels[index + 3]) {
-                        row[y] = 0;
-                    } else {
-                        row[y] = 1;
-                    }
-                }
-                bitMap.push(row);
+            p5i.noStroke();
+            p5i.fill(255, 150);
+
+
+
+            // Rect no translate
+            p5i.rect(organism.pos.x - (organism.size.w / 2), organism.pos.y - 120, organism.size.w, organism.size.h);
+
+            // Rect from quad
+            quadOrganism = {
+                x1: organism.pos.x - (organism.size.w / 2),
+                y1: organism.pos.y - 90,
+                x2: organism.pos.x - (organism.size.w / 2),
+                y2: organism.pos.y + organism.size.h - 90,
+                x3: organism.pos.x + organism.size.w - (organism.size.w / 2),
+                y3: organism.pos.y + organism.size.h - 90,
+                x4: organism.pos.x + organism.size.w - (organism.size.w / 2),
+                y4: organism.pos.y - 90
             }
+            p5i.quad(quadOrganism.x1, quadOrganism.y1, quadOrganism.x2, quadOrganism.y2, quadOrganism.x3, quadOrganism.y3, quadOrganism.x4, quadOrganism.y4);
 
-            let reducationRate = .05;
-            let xResolution = bitMap.length * reducationRate;
-            let xLenghtReduction = bitMap.length / xResolution;
-            let reducedBitmap = Array(xLenghtReduction);
-            for (var x = 0; x < bitMap.length; x += xLenghtReduction) {
-                let reductionRow = [];
-                for (var xx = x; xx < x + xLenghtReduction; xx++) {
-                    let yResolution = bitMap[x].length * reducationRate;
-                    let yLenghtReduction = bitMap[x].length / yResolution;
-                    let row = Array(xResolution);
-                    for (var y = 0; y < bitMap[x].length; y += yLenghtReduction) {
-                        let reductionSum = 0;
-                        for (var yy = y; yy < y + yLenghtReduction; yy++) {
-                            reductionSum += bitMap[x][yy];
-                        }
-                        row[y / yLenghtReduction] = Math.floor(reductionSum / yLenghtReduction);
-                    }
-                    reductionRow.push(row);
-                }
-
-                reducedBitmap[x / xLenghtReduction] = Array(xResolution).fill(0);
-                for (var i = 0; i < reductionRow.length; i++) {
-                    for (var ii = 0; ii < reductionRow[i].length; ii++) {
-                        reducedBitmap[x / xLenghtReduction][ii] += reductionRow[i][ii];
-                    }
-                }
-
-                for (var i = 0; i < reductionRow.length; i++) {
-                    for (var ii = 0; ii < reductionRow[i].length; ii++) {
-                        reducedBitmap[x / xLenghtReduction][ii] = Math.floor(reducedBitmap[x / xLenghtReduction][ii] / reductionRow.length);
-                    }
-                    break;
-                }
-            }
-
-            var self = this;
-
-            var t0 = performance.now();
-
-            Graph = window.Graph;
-            astar = window.astar;
-
-            let object = {
-                x: p5i.width / 2,
-                y: p5i.height - 1
-            }
-
-            if (!self.graph) {
-                self.graph = new Graph(reducedBitmap);
-            } else {
-                self.graph.init();
-            }
-
-
+            // Rect translated
             p5i.push();
-            for (var x = 0; x < reducedBitmap.length; x++) {
-                for (var y = 0; y < reducedBitmap[x].length; y++) {
-                    if (reducedBitmap[x][y] == 0)
-                        p5i.fill('blue');
-                    else {
-                        p5i.fill('green');
-                    }
-                    p5i.ellipse(x * xLenghtReduction, y * xLenghtReduction, 5);
-                }
-            }
+            p5i.translate(organism.pos.x, organism.pos.y - 60);
+            p5i.rotate(vel.heading());
+            p5i.rectMode(p5i.CENTER);
+            let a = p5i.rect(0, 0, organism.size.w, organism.size.h);
             p5i.pop();
 
-            // Limits X and Y for both object according the size of the bitmap
-
-            let objectX = Math.min(Math.max(Math.round(object.x / xLenghtReduction), 0), self.graph.grid[0].length - 1);
-            let objectY = Math.min(Math.max(Math.round(object.y / xLenghtReduction), 0), self.graph.grid.length - 1);
-            let targetX = Math.min(Math.max(Math.round(target.x / xLenghtReduction), 0), self.graph.grid[0].length - 1);
-            let targetY = Math.min(Math.max(Math.round(target.y / xLenghtReduction), 0), self.graph.grid.length - 1);
-
-            //let objectX = Math.min(Math.max(object.x, 0), self.graph.grid[0].length - 1);
-            //let objectY = Math.min(Math.max(object.y, 0), self.graph.grid.length - 1);
-            //let targetX = Math.min(Math.max(target.x, 0), self.graph.grid[0].length - 1);
-            //let targetY = Math.min(Math.max(target.y, 0), self.graph.grid.length - 1);
-
-            // Setup the start and end points;
-            var start = self.graph.grid[objectX][objectY];
-            var end = self.graph.grid[targetX][targetY];
-
-            // If the start point is a wall, find the nearest nonwall node
-            if (start.weight == 0) {
-                let findClosestNonwall = (nodes) => {
-                    let nodeFound = null;
-                    for (let i = 0; i < nodes.length; i++) {
-                        if (!nodes[i].weight == 0) {
-                            nodeFound = nodes[i];
-                        }
-                    }
-
-                    if (!nodeFound) {
-                        let neighbors = [];
-                        for (let i = 0; i < nodes.length; i++) {
-                            neighbors = neighbors.concat(self.graph.neighbors(nodes[i]));
-                        }
-                        return findClosestNonwall(neighbors);
-                    }
-
-                    return nodeFound;
-                };
-                start = findClosestNonwall(self.graph.neighbors(start));
+            // Quad translated
+            quadTranslatedOrganism = {
+                x1: organism.pos.x - (organism.size.w / 2) + 20,
+                y1: organism.pos.y - 90,
+                x2: organism.pos.x - (organism.size.w / 2) + 20,
+                y2: organism.pos.y + organism.size.h - 90,
+                x3: organism.pos.x + organism.size.w - (organism.size.w / 2) + 20,
+                y3: organism.pos.y + organism.size.h - 90,
+                x4: organism.pos.x + organism.size.w - (organism.size.w / 2) + 20,
+                y4: organism.pos.y - 90
             }
 
-            // Do a A* search from the starting point to the target point
-            var result = astar.search(self.graph, start, end, { closest: true });
+            let midx = quadTranslatedOrganism.x1 + ((quadTranslatedOrganism.x3 - quadTranslatedOrganism.x1) / 2);
+            let midy = quadTranslatedOrganism.y1 + ((quadTranslatedOrganism.y3 - quadTranslatedOrganism.y1) / 2);
 
-            let distance = (result.length == 0 ? null : result.length);
-            var t1 = performance.now();
+            let pos1 = rotate_point(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1, midx, midy, vel.heading());
+            let newpos1 = p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy),vel.heading());
 
-            // Draw path found (for debuggin purposes)
+            
+            pos1 = rotate_point(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1, midx, midy, vel.heading());
+            let pos2 = rotate_point(quadTranslatedOrganism.x2, quadTranslatedOrganism.y2, midx, midy, vel.heading());
+            let pos3 = rotate_point(quadTranslatedOrganism.x3, quadTranslatedOrganism.y3, midx, midy, vel.heading());
+            let pos4 = rotate_point(quadTranslatedOrganism.x4, quadTranslatedOrganism.y4, midx, midy, vel.heading());
+            quadTranslatedOrganism1 = {
+                x1: pos1.x,
+                y1: pos1.y,
+                x2: pos2.x,
+                y2: pos2.y,
+                x3: pos3.x,
+                y3: pos3.y,
+                x4: pos4.x,
+                y4: pos4.y
+            }
+
+            quadTranslatedOrganism2 = {
+                x1: p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy),vel.heading()).x,
+                y1: p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy),vel.heading()).y,
+                x2: p5i.createVector(quadTranslatedOrganism.x2, quadTranslatedOrganism.y2).rotateOnOrigin(createVector(midx, midy),vel.heading()).x,
+                y2: p5i.createVector(quadTranslatedOrganism.x2, quadTranslatedOrganism.y2).rotateOnOrigin(createVector(midx, midy),vel.heading()).y,
+                x3: p5i.createVector(quadTranslatedOrganism.x3, quadTranslatedOrganism.y3).rotateOnOrigin(createVector(midx, midy),vel.heading()).x,
+                y3: p5i.createVector(quadTranslatedOrganism.x3, quadTranslatedOrganism.y3).rotateOnOrigin(createVector(midx, midy),vel.heading()).y,
+                x4: p5i.createVector(quadTranslatedOrganism.x4, quadTranslatedOrganism.y4).rotateOnOrigin(createVector(midx, midy),vel.heading()).x,
+                y4: p5i.createVector(quadTranslatedOrganism.x4, quadTranslatedOrganism.y4).rotateOnOrigin(createVector(midx, midy),vel.heading()).y
+            }
+
+            let test = new p5.Matrix()
+
             p5i.push();
+            p5i.strokeWeight(1);
+            p5i.stroke('red');
+            //p5i.point(midx, midy);
             p5i.stroke('yellow');
-            for (var i = 1; i < result.length; i++) {
-                p5i.line(result[i - 1].x * xLenghtReduction, result[i - 1].y * xLenghtReduction, result[i].x * xLenghtReduction, result[i].y * xLenghtReduction);
-                //p5i.line(result[i-1].x, result[i-1].y, result[i].x, result[i].y);
-            }
+            p5i.point(quadTranslatedOrganism2.x1, quadTranslatedOrganism2.y1);
+            p5i.point(quadTranslatedOrganism2.x2, quadTranslatedOrganism2.y2);
+            p5i.point(quadTranslatedOrganism2.x3, quadTranslatedOrganism2.y3);
+            p5i.point(quadTranslatedOrganism2.x4, quadTranslatedOrganism2.y4);
             p5i.pop();
-            console.log(object.id + ': ' + (t1 - t0));
+
+            object1 = [
+                createVector(quadOrganism.x1, quadOrganism.y1),
+                createVector(quadOrganism.x2, quadOrganism.y2),
+                createVector(quadOrganism.x3, quadOrganism.y3),
+                createVector(quadOrganism.x4, quadOrganism.y4),
+            ]
+
+            object2 = [
+                createVector(quadTranslatedOrganism2.x1, quadTranslatedOrganism2.y1),
+                createVector(quadTranslatedOrganism2.x2, quadTranslatedOrganism2.y2),
+                createVector(quadTranslatedOrganism2.x3, quadTranslatedOrganism2.y3),
+                createVector(quadTranslatedOrganism2.x4, quadTranslatedOrganism2.y4),
+            ]
+
+            console.log(p5i.collidePolyPoly(object1, object2));
+
+            p5i.pop();
         }
+
+        function rotate_point(pointX, pointY, originX, originY, radians) {
+            //angle = radians * Math.PI / 180.0;
+            return {
+                x: Math.cos(radians) * (pointX - originX) - Math.sin(radians) * (pointY - originY) + originX,
+                y: Math.sin(radians) * (pointX - originX) + Math.cos(radians) * (pointY - originY) + originY
+            };
+        }        
     </script>
 </body>
 
