@@ -113,7 +113,7 @@ function resize2DArray(arrayToReduce) {
 
 function calcFitness(organism, target) {
     if (!calculatedPaths) calculatedPaths = [];
-    let distance = aStarDistance(organism.pos, target);
+    let distance = aStarDistance(organism.object.pos, target);
     return weightedResult(organism, target, distance);
 }
 

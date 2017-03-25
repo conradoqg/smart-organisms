@@ -2,12 +2,21 @@ const DNA = require('./dna.js');
 const PluginManager = require('./pluginManager.js');
 
 class Organism {
-    constructor(dnaOrGeneAmount) {
-        this.size = { width: 25, height: 5 };
-        this.pos = p5i.createVector((p5i.width / 2) - (this.size.width / 2), p5i.height - 30);
-        this.initialPos = this.pos.copy();
-        this.vel = p5i.createVector();
-        this.acc = p5i.createVector();
+    constructor(dnaOrGeneAmount, bornAt) {
+        bornAt = (bornAt == null ? p5i.createVector(p5i.width / 2, p5i.height - 10) : bornAt);
+
+        this.object = {};
+        this.object.type = 'rect';
+        this.object.size = { width: 25, height: 5 };
+        this.object.pos = bornAt.sub(this.object.size.width / 2, this.object.size.height / 2);
+        this.object.mode = p5i.CENTER;
+        this.object.moviment = {};
+        this.object.moviment.vel = p5i.createVector();
+        this.object.moviment.acc = p5i.createVector();
+        this.object.moviment.heading = this.object.moviment.vel.heading();
+        this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode);
+
+        this.initialPos = this.object.pos.copy();
         this.completed = false;
         this.crashed = false;
         this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
@@ -42,58 +51,37 @@ class Organism {
     update(lifeSpanTimer) {
         if (!this.completed && !this.crashed) {
             this.lifeSpan = lifeSpanTimer;
-            this.acc.add(this.dna.genes[lifeSpanTimer]);
-            this.vel.add(this.acc);
-            this.pos.add(this.vel);
-            this.acc.mult(0);
-            this.vel.limit(4);
+
+            this.object.moviment.acc.add(this.dna.genes[lifeSpanTimer]);
+            this.object.moviment.vel.add(this.object.moviment.acc);
+            this.object.pos.add(this.object.moviment.vel);
+            this.object.moviment.acc.mult(0);
+            this.object.moviment.vel.limit(4);
+            this.object.moviment.heading = this.object.moviment.vel.heading();
+            this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode, this.object.moviment.heading);
         }
     }
 
     collidesCircle(target) {
-        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
-        return p5i.collideCirclePoly(target.x, target.y, target.diameter, [myCoors.v1, myCoors.v2, myCoors.v3, myCoors.v4]);
+        return p5i.collideCirclePoly(target.x, target.y, target.diameter, this.object.coors);
     }
 
     collidesRect(target, inside = false) {
-        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
-        let targetCoors = getCoorsFromRect({ x: target.x, y: target.y }, { width: target.width, height: target.height });
-        return p5i.collidePolyPoly([targetCoors.v1, targetCoors.v2, targetCoors.v3, targetCoors.v4], [myCoors.v1, myCoors.v2, myCoors.v3, myCoors.v4], inside);
+        let targetCoors = p5i.getCoorsFromRect(target.x, target.y, target.width, target.height, p5i.CORNER);
+        return p5i.collidePolyPoly(targetCoors, this.object.coors, inside);
     }
 
     distanceTo(target) {
-        return p5i.dist(this.pos.x, this.pos.y, target.x, target.y);
+        return p5i.dist(this.object.pos.x, this.object.pos.y, target.x, target.y);
     }
 
     render() {
         p5i.push();
         p5i.noStroke();
         p5i.fill(255, 150);
-
-        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
-
-        p5i.quad(myCoors.v1.x, myCoors.v1.y, myCoors.v2.x, myCoors.v2.y, myCoors.v3.x, myCoors.v3.y, myCoors.v4.x, myCoors.v4.y);
-
+        p5i.quad(this.object.coors[0].x, this.object.coors[0].y, this.object.coors[1].x, this.object.coors[1].y, this.object.coors[2].x, this.object.coors[2].y, this.object.coors[3].x, this.object.coors[3].y);
         p5i.pop();
     }
 }
-
-let getCoorsFromRect = (pos, size, angle) => {
-    var coors = {
-        v1: p5i.createVector(pos.x, pos.y),
-        v2: p5i.createVector(pos.x, pos.y + size.height),
-        v3: p5i.createVector(pos.x + size.width, pos.y + size.height),
-        v4: p5i.createVector(pos.x + size.width, pos.y),
-    };
-
-    if (angle != null) {
-        let midV = p5i.createVector(coors.v1.x + ((coors.v3.x - coors.v1.x) / 2), coors.v1.y + ((coors.v3.y - coors.v1.y) / 2));
-        Object.keys(coors).map(function (key) {
-            return coors[key] = coors[key].rotateOnOrigin(midV, angle);
-        }, this);
-    }
-
-    return coors;
-};
 
 module.exports = Organism;

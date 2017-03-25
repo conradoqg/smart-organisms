@@ -25,7 +25,7 @@ let onWorldAfterRender = () => {
             p5i.push();
             p5i.stroke('yellow');
             calculatedPaths.forEach((path) => {
-                p5i.line(path.organism.pos.x, path.organism.pos.y, path.target.x, path.target.y);
+                p5i.line(path.organism.object.pos.x, path.organism.object.pos.y, path.target.x, path.target.y);
             });
             p5i.pop();
         }
