@@ -41,10 +41,12 @@ class Organism {
     calcFitness(target) {
         let called = false;
 
-        this.emitter.emit('beforeCalcFitness', { organism: this, target: target, callback: (fitness) => {
-            this.fitness = fitness;
-            called = true;
-        }});
+        this.emitter.emit('beforeCalcFitness', {
+            organism: this, target: target, callback: (fitness) => {
+                this.fitness = fitness;
+                called = true;
+            }
+        });
 
         if (!called) this.fitness = this.fitnessCalculatorFn(this, target);
     }
@@ -72,7 +74,7 @@ class Organism {
         return p5i.collideCirclePoly(target.pos.x, target.pos.y, target.size.diameter, this.object.coors);
     }
 
-    collidesRect(target, inside = false) {        
+    collidesRect(target, inside = false) {
         return p5i.collidePolyPoly(target.coors, this.object.coors, inside);
     }
 
