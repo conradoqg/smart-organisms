@@ -5,7 +5,6 @@ let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
     if (pluginID == 'weightedFitness') {
-        emitter.on('world-afterRender', onWorldAfterRender);
         emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
         emitter.on('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
@@ -13,24 +12,10 @@ emitter.on('pluginManager-activate', (pluginID) => {
 
 emitter.on('pluginManager-deactivate', (pluginID) => {
     if (pluginID == 'weightedFitness') {
-        emitter.off('world-afterRender', onWorldAfterRender);
         emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
         emitter.off('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
 });
-
-let onWorldAfterRender = () => {
-    if (calculatedPaths != null) {
-        if (window.isDebuging) {
-            p5i.push();
-            p5i.stroke('yellow');
-            calculatedPaths.forEach((path) => {
-                p5i.line(path.organism.object.pos.x, path.organism.object.pos.y, path.target.x, path.target.y);
-            });
-            p5i.pop();
-        }
-    }
-};
 
 let onOrganismBeforeCalcFitness = (event) => {
     event.callback(calcFitness(event.organism, event.target));
@@ -77,6 +62,23 @@ function weightedResult(organism, target, distance) {
     return result;
 }
 
-let onAfterAllFitnessCalculated = () => {
+let onAfterAllFitnessCalculated = (population) => {
+    if (window.isDebuging) {
+        p5i.push();
+        p5i.stroke('yellow');
+        for (var i = 0; i < calculatedPaths.length; i++) {
+            var path = calculatedPaths[i];
+            p5i.line(path.organism.object.pos.x, path.organism.object.pos.y, path.target.pos.x, path.target.pos.y);
+        }
+        p5i.pop();
+
+        p5i.fill(255);
+        for (var index = 0; index < population.organisms.length; index++) {
+            var organism = population.organisms[index];
+            p5i.textSize(12);
+            p5i.text(organism.fitness.toFixed(3), organism.object.pos.x, organism.object.pos.y);
+        }
+        p5i.pop();
+    }
     calculatedPaths = null;
 };

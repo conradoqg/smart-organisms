@@ -15,7 +15,7 @@ class DNA {
         for (let i = 0; i < this.genes.length; i++) {
             // Set the gene from itself or form its partner depending on the mid point.
             if (i > mid) {
-                newGenes[i] = this.genes[i];        
+                newGenes[i] = this.genes[i];
             } else {
                 newGenes[i] = partner.genes[i];
             }
@@ -32,7 +32,7 @@ class DNA {
 
     createNewGene() {
         // Creates a new gene randomly
-        let newGene = p5i.createVector(p5i.random(-1,1), p5i.random(-1,1));
+        let newGene = p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1));
         newGene.setMag(this.maxforce);
         return newGene;
     }

@@ -16,7 +16,7 @@ class DNA {
         for (let i = 0; i < this.genes.length; i++) {
             // Set the gene from itself or form its partner depending on the mid point.
             if (i > mid) {
-                newGenes[i] = this.genes[i];        
+                newGenes[i] = this.genes[i];
             } else {
                 newGenes[i] = partner.genes[i];
             }
@@ -33,7 +33,7 @@ class DNA {
 
     createNewGene() {
         // Creates a new gene randomly
-        let newGene = p5i.createVector(p5i.random(-1,1), p5i.random(-1,1));
+        let newGene = p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1));
         newGene.setMag(this.maxforce);
         return newGene;
     }
@@ -209,7 +209,7 @@ emitter.on('pluginManager-deactivate', (pluginID) => {
     }
 });
 
-let onWorldAfterRender = () => {
+let onWorldAfterRender = (world) => {
     if (bitMap == null) {
         // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
         bitMap = [];
@@ -232,21 +232,6 @@ let onWorldAfterRender = () => {
         }
 
         bitMap = resize2DArray(bitMap);
-    }
-
-    if (calculatedPaths != null) {
-        if (window.isDebuging) {
-            p5i.push();
-            p5i.stroke('yellow');
-            var xResolution = bitMap.length * reducationRate;
-            var xLenghtReduction = bitMap.length / xResolution;
-            calculatedPaths.forEach((path) => {
-                for (var i = 1; i < path.length; i++) {
-                    p5i.line(path[i - 1].x * xLenghtReduction, path[i - 1].y * xLenghtReduction, path[i].x * xLenghtReduction, path[i].y * xLenghtReduction);
-                }
-            });
-            p5i.pop();
-        }
     }
 };
 
@@ -394,7 +379,27 @@ function aStarDistance(object, target) {
     return distance;
 }
 
-let onAfterAllFitnessCalculated = () => {
+let onAfterAllFitnessCalculated = (population) => {
+    if (window.isDebuging) {
+        p5i.push();
+        p5i.stroke('yellow');
+        var xResolution = bitMap.length * reducationRate;
+        var xLenghtReduction = bitMap.length / xResolution;
+        for (var i = 0; i < calculatedPaths.length; i++) {
+            var path = calculatedPaths[i];
+            for (var n = 1; n < path.length; n++) {
+                p5i.line(path[n - 1].x * xLenghtReduction, path[n - 1].y * xLenghtReduction, path[n].x * xLenghtReduction, path[n].y * xLenghtReduction);
+            }
+        }
+
+        p5i.fill(255);
+        for (var index = 0; index < population.organisms.length; index++) {
+            var organism = population.organisms[index];
+            p5i.textSize(12);
+            p5i.text(organism.fitness.toFixed(3), organism.object.pos.x, organism.object.pos.y);
+        }
+        p5i.pop();
+    }
     calculatedPaths = null;
 };
 },{"../pluginManager.js":4}],6:[function(require,module,exports){
@@ -405,7 +410,6 @@ let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
     if (pluginID == 'weightedFitness') {
-        emitter.on('world-afterRender', onWorldAfterRender);
         emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
         emitter.on('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
@@ -413,24 +417,10 @@ emitter.on('pluginManager-activate', (pluginID) => {
 
 emitter.on('pluginManager-deactivate', (pluginID) => {
     if (pluginID == 'weightedFitness') {
-        emitter.off('world-afterRender', onWorldAfterRender);
         emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
         emitter.off('population-afterAllFitnessCalculated', onAfterAllFitnessCalculated);
     }
 });
-
-let onWorldAfterRender = () => {
-    if (calculatedPaths != null) {
-        if (window.isDebuging) {
-            p5i.push();
-            p5i.stroke('yellow');
-            calculatedPaths.forEach((path) => {
-                p5i.line(path.organism.object.pos.x, path.organism.object.pos.y, path.target.x, path.target.y);
-            });
-            p5i.pop();
-        }
-    }
-};
 
 let onOrganismBeforeCalcFitness = (event) => {
     event.callback(calcFitness(event.organism, event.target));
@@ -477,7 +467,24 @@ function weightedResult(organism, target, distance) {
     return result;
 }
 
-let onAfterAllFitnessCalculated = () => {
+let onAfterAllFitnessCalculated = (population) => {
+    if (window.isDebuging) {
+        p5i.push();
+        p5i.stroke('yellow');
+        for (var i = 0; i < calculatedPaths.length; i++) {
+            var path = calculatedPaths[i];
+            p5i.line(path.organism.object.pos.x, path.organism.object.pos.y, path.target.pos.x, path.target.pos.y);
+        }
+        p5i.pop();
+
+        p5i.fill(255);
+        for (var index = 0; index < population.organisms.length; index++) {
+            var organism = population.organisms[index];
+            p5i.textSize(12);
+            p5i.text(organism.fitness.toFixed(3), organism.object.pos.x, organism.object.pos.y);
+        }
+        p5i.pop();
+    }
     calculatedPaths = null;
 };
 },{"../pluginManager.js":4}],7:[function(require,module,exports){

@@ -24,7 +24,7 @@ emitter.on('pluginManager-deactivate', (pluginID) => {
     }
 });
 
-let onWorldAfterRender = () => {
+let onWorldAfterRender = (world) => {
     if (bitMap == null) {
         // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
         bitMap = [];
@@ -47,21 +47,6 @@ let onWorldAfterRender = () => {
         }
 
         bitMap = resize2DArray(bitMap);
-    }
-
-    if (calculatedPaths != null) {
-        if (window.isDebuging) {
-            p5i.push();
-            p5i.stroke('yellow');
-            var xResolution = bitMap.length * reducationRate;
-            var xLenghtReduction = bitMap.length / xResolution;
-            calculatedPaths.forEach((path) => {
-                for (var i = 1; i < path.length; i++) {
-                    p5i.line(path[i - 1].x * xLenghtReduction, path[i - 1].y * xLenghtReduction, path[i].x * xLenghtReduction, path[i].y * xLenghtReduction);
-                }
-            });
-            p5i.pop();
-        }
     }
 };
 
@@ -209,6 +194,26 @@ function aStarDistance(object, target) {
     return distance;
 }
 
-let onAfterAllFitnessCalculated = () => {
+let onAfterAllFitnessCalculated = (population) => {
+    if (window.isDebuging) {
+        p5i.push();
+        p5i.stroke('yellow');
+        var xResolution = bitMap.length * reducationRate;
+        var xLenghtReduction = bitMap.length / xResolution;
+        for (var i = 0; i < calculatedPaths.length; i++) {
+            var path = calculatedPaths[i];
+            for (var n = 1; n < path.length; n++) {
+                p5i.line(path[n - 1].x * xLenghtReduction, path[n - 1].y * xLenghtReduction, path[n].x * xLenghtReduction, path[n].y * xLenghtReduction);
+            }
+        }
+
+        p5i.fill(255);
+        for (var index = 0; index < population.organisms.length; index++) {
+            var organism = population.organisms[index];
+            p5i.textSize(12);
+            p5i.text(organism.fitness.toFixed(3), organism.object.pos.x, organism.object.pos.y);
+        }
+        p5i.pop();
+    }
     calculatedPaths = null;
 };

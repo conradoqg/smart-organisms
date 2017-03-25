@@ -124,9 +124,9 @@
             let midy = quadTranslatedOrganism.y1 + ((quadTranslatedOrganism.y3 - quadTranslatedOrganism.y1) / 2);
 
             let pos1 = rotate_point(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1, midx, midy, vel.heading());
-            let newpos1 = p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy),vel.heading());
+            let newpos1 = p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy), vel.heading());
 
-            
+
             pos1 = rotate_point(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1, midx, midy, vel.heading());
             let pos2 = rotate_point(quadTranslatedOrganism.x2, quadTranslatedOrganism.y2, midx, midy, vel.heading());
             let pos3 = rotate_point(quadTranslatedOrganism.x3, quadTranslatedOrganism.y3, midx, midy, vel.heading());
@@ -143,14 +143,14 @@
             }
 
             quadTranslatedOrganism2 = {
-                x1: p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy),vel.heading()).x,
-                y1: p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy),vel.heading()).y,
-                x2: p5i.createVector(quadTranslatedOrganism.x2, quadTranslatedOrganism.y2).rotateOnOrigin(createVector(midx, midy),vel.heading()).x,
-                y2: p5i.createVector(quadTranslatedOrganism.x2, quadTranslatedOrganism.y2).rotateOnOrigin(createVector(midx, midy),vel.heading()).y,
-                x3: p5i.createVector(quadTranslatedOrganism.x3, quadTranslatedOrganism.y3).rotateOnOrigin(createVector(midx, midy),vel.heading()).x,
-                y3: p5i.createVector(quadTranslatedOrganism.x3, quadTranslatedOrganism.y3).rotateOnOrigin(createVector(midx, midy),vel.heading()).y,
-                x4: p5i.createVector(quadTranslatedOrganism.x4, quadTranslatedOrganism.y4).rotateOnOrigin(createVector(midx, midy),vel.heading()).x,
-                y4: p5i.createVector(quadTranslatedOrganism.x4, quadTranslatedOrganism.y4).rotateOnOrigin(createVector(midx, midy),vel.heading()).y
+                x1: p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy), vel.heading()).x,
+                y1: p5i.createVector(quadTranslatedOrganism.x1, quadTranslatedOrganism.y1).rotateOnOrigin(createVector(midx, midy), vel.heading()).y,
+                x2: p5i.createVector(quadTranslatedOrganism.x2, quadTranslatedOrganism.y2).rotateOnOrigin(createVector(midx, midy), vel.heading()).x,
+                y2: p5i.createVector(quadTranslatedOrganism.x2, quadTranslatedOrganism.y2).rotateOnOrigin(createVector(midx, midy), vel.heading()).y,
+                x3: p5i.createVector(quadTranslatedOrganism.x3, quadTranslatedOrganism.y3).rotateOnOrigin(createVector(midx, midy), vel.heading()).x,
+                y3: p5i.createVector(quadTranslatedOrganism.x3, quadTranslatedOrganism.y3).rotateOnOrigin(createVector(midx, midy), vel.heading()).y,
+                x4: p5i.createVector(quadTranslatedOrganism.x4, quadTranslatedOrganism.y4).rotateOnOrigin(createVector(midx, midy), vel.heading()).x,
+                y4: p5i.createVector(quadTranslatedOrganism.x4, quadTranslatedOrganism.y4).rotateOnOrigin(createVector(midx, midy), vel.heading()).y
             }
 
             let test = new p5.Matrix()
@@ -191,7 +191,7 @@
                 x: Math.cos(radians) * (pointX - originX) - Math.sin(radians) * (pointY - originY) + originX,
                 y: Math.sin(radians) * (pointX - originX) + Math.cos(radians) * (pointY - originY) + originY
             };
-        }        
+        }
     </script>
 </body>
 
