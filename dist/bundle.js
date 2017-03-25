@@ -51,18 +51,6 @@ module.exports = DNA;
 require('./plugins/aStartFitness.js');require('./plugins/weightedFitness.js');
 
 p5.disableFriendlyErrors = true;
-p5.Vector.prototype.rotateOnOrigin = function (origin, angle) {
-    if (this.p5) {
-        if (this.p5._angleMode === this.p5.DEGREES) {
-            angle = this.p5.polarGeometry.degreesToRadians(angle);
-        }
-    }
-    var newX = Math.cos(angle) * (this.x - origin.x) - Math.sin(angle) * (this.y - origin.y) + origin.x;
-    var newY = Math.sin(angle) * (this.x - origin.x) + Math.cos(angle) * (this.y - origin.y) + origin.y;
-    this.x = newX;
-    this.y = newY;
-    return this;
-};
 
 const World = require('./world.js');
 const word = new World();
@@ -80,12 +68,21 @@ const DNA = require('./dna.js');
 const PluginManager = require('./pluginManager.js');
 
 class Organism {
-    constructor(dnaOrGeneAmount) {
-        this.size = { width: 25, height: 5 };
-        this.pos = p5i.createVector((p5i.width / 2) - (this.size.width / 2), p5i.height - 30);
-        this.initialPos = this.pos.copy();
-        this.vel = p5i.createVector();
-        this.acc = p5i.createVector();
+    constructor(dnaOrGeneAmount, bornAt) {
+        bornAt = (bornAt == null ? p5i.createVector(p5i.width / 2, p5i.height - 10) : bornAt);
+
+        this.object = {};
+        this.object.type = 'rect';
+        this.object.size = { width: 25, height: 5 };
+        this.object.pos = bornAt.sub(this.object.size.width / 2, this.object.size.height / 2);
+        this.object.mode = p5i.CENTER;
+        this.object.moviment = {};
+        this.object.moviment.vel = p5i.createVector();
+        this.object.moviment.acc = p5i.createVector();
+        this.object.moviment.heading = this.object.moviment.vel.heading();
+        this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode);
+
+        this.initialPos = this.object.pos.copy();
         this.completed = false;
         this.crashed = false;
         this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
@@ -108,8 +105,16 @@ class Organism {
     }
 
     calcFitness(target) {
-        this.emitter.emit('beforeCalcFitness', this);
-        this.fitness = this.fitnessCalculatorFn(this, target);
+        let called = false;
+
+        this.emitter.emit('beforeCalcFitness', {
+            organism: this, target: target, callback: (fitness) => {
+                this.fitness = fitness;
+                called = true;
+            }
+        });
+
+        if (!called) this.fitness = this.fitnessCalculatorFn(this, target);
     }
 
     mate(partner) {
@@ -120,59 +125,37 @@ class Organism {
     update(lifeSpanTimer) {
         if (!this.completed && !this.crashed) {
             this.lifeSpan = lifeSpanTimer;
-            this.acc.add(this.dna.genes[lifeSpanTimer]);
-            this.vel.add(this.acc);
-            this.pos.add(this.vel);
-            this.acc.mult(0);
-            this.vel.limit(4);
+
+            this.object.moviment.acc.add(this.dna.genes[lifeSpanTimer]);
+            this.object.moviment.vel.add(this.object.moviment.acc);
+            this.object.pos.add(this.object.moviment.vel);
+            this.object.moviment.acc.mult(0);
+            this.object.moviment.vel.limit(4);
+            this.object.moviment.heading = this.object.moviment.vel.heading();
+            this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode, this.object.moviment.heading);
         }
     }
 
     collidesCircle(target) {
-        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
-        return p5i.collideCirclePoly(target.x, target.y, target.diameter, [myCoors.v1, myCoors.v2, myCoors.v3, myCoors.v4]);
+        return p5i.collideCirclePoly(target.pos.x, target.pos.y, target.size.diameter, this.object.coors);
     }
 
     collidesRect(target, inside = false) {
-        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
-        let targetCoors = getCoorsFromRect({ x: target.x, y: target.y }, { width: target.width, height: target.height });
-        return p5i.collidePolyPoly([targetCoors.v1, targetCoors.v2, targetCoors.v3, targetCoors.v4], [myCoors.v1, myCoors.v2, myCoors.v3, myCoors.v4], inside);
+        return p5i.collidePolyPoly(target.coors, this.object.coors, inside);
     }
 
     distanceTo(target) {
-        return p5i.dist(this.pos.x, this.pos.y, target.x, target.y);
+        return p5i.dist(this.object.pos.x, this.object.pos.y, target.pos.x, target.pos.y);
     }
 
     render() {
         p5i.push();
         p5i.noStroke();
         p5i.fill(255, 150);
-
-        let myCoors = getCoorsFromRect(this.pos, this.size, this.vel.heading());
-
-        p5i.quad(myCoors.v1.x, myCoors.v1.y, myCoors.v2.x, myCoors.v2.y, myCoors.v3.x, myCoors.v3.y, myCoors.v4.x, myCoors.v4.y);
-
+        p5i.quad(this.object.coors[0].x, this.object.coors[0].y, this.object.coors[1].x, this.object.coors[1].y, this.object.coors[2].x, this.object.coors[2].y, this.object.coors[3].x, this.object.coors[3].y);
         p5i.pop();
     }
 }
-
-let getCoorsFromRect = (pos, size, angle) => {
-    var coors = {
-        v1: p5i.createVector(pos.x, pos.y),
-        v2: p5i.createVector(pos.x, pos.y + size.height),
-        v3: p5i.createVector(pos.x + size.width, pos.y + size.height),
-        v4: p5i.createVector(pos.x + size.width, pos.y),
-    };
-
-    if (angle != null) {
-        let midV = p5i.createVector(coors.v1.x + ((coors.v3.x - coors.v1.x) / 2), coors.v1.y + ((coors.v3.y - coors.v1.y) / 2));
-        Object.keys(coors).map(function (key) {
-            return coors[key] = coors[key].rotateOnOrigin(midV, angle);
-        }, this);
-    }
-
-    return coors;
-};
 
 module.exports = Organism;
 },{"./dna.js":1,"./pluginManager.js":4}],4:[function(require,module,exports){
@@ -271,8 +254,8 @@ let onReset = () => {
     bitMap = null;
 };
 
-let onOrganismBeforeCalcFitness = (organism) => {
-    organism.fitnessCalculatorFn = calcFitness;
+let onOrganismBeforeCalcFitness = (event) => {
+    event.callback(calcFitness(event.organism, event.target));
 };
 
 function resize2DArray(arrayToReduce) {
@@ -315,7 +298,7 @@ function resize2DArray(arrayToReduce) {
 
 function calcFitness(organism, target) {
     if (!calculatedPaths) calculatedPaths = [];
-    let distance = aStarDistance(organism.pos, target);
+    let distance = aStarDistance(organism.object.pos, target);
     return weightedResult(organism, target, distance);
 }
 
@@ -372,8 +355,8 @@ function aStarDistance(object, target) {
     let objectX = Math.min(Math.max(Math.round(object.x / xLenghtReduction), 0), bitMap[0].length - 1);
     let objectY = Math.min(Math.max(Math.round(object.y / xLenghtReduction), 0), bitMap.length - 1);
 
-    let targetX = Math.min(Math.max(Math.round(target.x / xLenghtReduction), 0), bitMap[0].length - 1);
-    let targetY = Math.min(Math.max(Math.round(target.y / xLenghtReduction), 0), bitMap.length - 1);
+    let targetX = Math.min(Math.max(Math.round(target.pos.x / xLenghtReduction), 0), bitMap[0].length - 1);
+    let targetY = Math.min(Math.max(Math.round(target.pos.y / xLenghtReduction), 0), bitMap.length - 1);
 
     // Setup the start and end points;
     var start = graph.grid[objectX][objectY];
@@ -442,15 +425,15 @@ let onWorldAfterRender = () => {
             p5i.push();
             p5i.stroke('yellow');
             calculatedPaths.forEach((path) => {
-                p5i.line(path.organism.pos.x, path.organism.pos.y, path.target.x, path.target.y);
+                p5i.line(path.organism.object.pos.x, path.organism.object.pos.y, path.target.x, path.target.y);
             });
             p5i.pop();
         }
     }
 };
 
-let onOrganismBeforeCalcFitness = (organism) => {
-    organism.fitnessCalculatorFn = calcFitness;
+let onOrganismBeforeCalcFitness = (event) => {
+    event.callback(calcFitness(event.organism, event.target));
 };
 
 let calcFitness = (organism, target) => {
@@ -528,13 +511,13 @@ class Population {
         return Promise
             .all(calcFitnessResults)
             .then(() => {
+                this.emitter.emit('afterAllFitnessCalculated', this);
+
                 // Find max fitness
                 let maxFit = 0;
-
                 for (let i = 0; i < this.organisms.length; i++) {
                     maxFit = Math.max(this.organisms[i].fitness, maxFit);
                 }
-                this.emitter.emit('afterAllFitnessCalculated', this);
 
                 // Map fitness between 0 and 1.        
                 for (let i = 0; i < this.organisms.length; i++) {
@@ -587,12 +570,7 @@ class World {
             y: 50,
             diameter: 20
         };
-        this.obstacle = {
-            x: 150,
-            y: 300,
-            width: 300,
-            height: 10
-        };
+
         this.emitter = new mitt();
         PluginManager.registerEmitter('world', this.emitter);
         PluginManager.activate('aStartFitness');
@@ -662,15 +640,19 @@ class World {
         this.fitnessCalculatorSelect = p5i.createSelect();
         this.fitnessCalculatorSelect.option('A*');
         this.fitnessCalculatorSelect.option('Weighted');
+        this.fitnessCalculatorSelect.option('Direct Distance');
         this.fitnessCalculatorSelect.changed(() => {
             let selected = this.fitnessCalculatorSelect.value();
 
             if (selected == 'A*') {
                 PluginManager.deactivate('weightedFitness');
                 PluginManager.activate('aStartFitness');
-            } else {
+            } else if (selected == 'Weighted') {
                 PluginManager.deactivate('aStartFitness');
                 PluginManager.activate('weightedFitness');
+            } else if (selected == 'Direct Distance') {
+                PluginManager.deactivate('aStartFitness');
+                PluginManager.deactivate('weightedFitness');
             }
         });
         this.fitnessCalculatorSelect.parent(this.settingsDiv);
@@ -698,6 +680,58 @@ class World {
         p5i.randomSeed(this.config.seed);
 
         this.population = new Population(this.config.lifeSpan, this.config.popSize);
+
+        this.world = {};
+        this.world.type = 'rect';
+        this.world.size = { width: this.config.width, height: this.config.height };
+        this.world.pos = p5i.createVector(0, 0);
+        this.world.mode = p5i.CORNER;
+        this.world.moviment = {};
+        this.world.moviment.vel = p5i.createVector();
+        this.world.moviment.acc = p5i.createVector();
+        this.world.moviment.heading = null;
+        this.world.coors = p5i.getCoorsFromRect(this.world.pos.x, this.world.pos.y, this.world.size.width, this.world.size.height, this.world.mode, this.world.moviment.heading);
+
+        this.target = {};
+        this.target.type = 'ellipse';
+        this.target.size = { diameter: 20 };
+        this.target.pos = p5i.createVector(p5i.width / 2, 50);
+        this.target.mode = p5i.CENTER;
+
+        this.obstacle1 = {};
+        this.obstacle1.type = 'rect';
+        this.obstacle1.size = { width: 300, height: 10 };
+        this.obstacle1.pos = p5i.createVector(p5i.width / 2, (p5i.height / 2) + (p5i.height / 4));
+        this.obstacle1.mode = p5i.CENTER;
+        this.obstacle1.moviment = {};
+        this.obstacle1.moviment.vel = p5i.createVector();
+        this.obstacle1.moviment.acc = p5i.createVector();
+        this.obstacle1.moviment.heading = this.obstacle1.moviment.vel.heading();
+        this.obstacle1.coors = p5i.getCoorsFromRect(this.obstacle1.pos.x, this.obstacle1.pos.y, this.obstacle1.size.width, this.obstacle1.size.height, this.obstacle1.mode, this.obstacle1.moviment.heading);
+
+        this.obstacle2 = {};
+        this.obstacle2.type = 'rect';
+        this.obstacle2.size = { width: 150, height: 5 };
+        this.obstacle2.pos = p5i.createVector((p5i.width / 2) / 2, (p5i.height / 3));
+        this.obstacle2.mode = p5i.CENTER;
+        this.obstacle2.moviment = {};
+        this.obstacle2.moviment.vel = p5i.createVector();
+        this.obstacle2.moviment.acc = p5i.createVector();
+        this.obstacle2.moviment.heading = p5i.PI + p5i.QUARTER_PI;
+        this.obstacle2.coors = p5i.getCoorsFromRect(this.obstacle2.pos.x, this.obstacle2.pos.y, this.obstacle2.size.width, this.obstacle2.size.height, this.obstacle2.mode, this.obstacle2.moviment.heading);
+
+        this.obstacle3 = {};
+        this.obstacle3.type = 'rect';
+        this.obstacle3.size = { width: 150, height: 5 };
+        this.obstacle3.pos = p5i.createVector((p5i.width / 2) + (p5i.height / 4), (p5i.height / 3));
+        this.obstacle3.mode = p5i.CENTER;
+        this.obstacle3.moviment = {};
+        this.obstacle3.moviment.vel = p5i.createVector();
+        this.obstacle3.moviment.acc = p5i.createVector();
+        this.obstacle3.moviment.heading = p5i.PI - p5i.QUARTER_PI;
+        this.obstacle3.coors = p5i.getCoorsFromRect(this.obstacle3.pos.x, this.obstacle3.pos.y, this.obstacle3.size.width, this.obstacle3.size.height, this.obstacle3.mode, this.obstacle3.moviment.heading);
+
+        this.obstacles = [this.obstacle1, this.obstacle2, this.obstacle3];
     }
 
     reset() {
@@ -734,13 +768,16 @@ class World {
                             }
 
                             // Off-screen
-                            if (organism.collidesRect({ x: 0, y: 0, width: this.config.width, height: this.config.height })) {
+                            if (organism.collidesRect(this.world)) {
                                 organism.crashed = true;
                             }
 
-                            // Obstacle
-                            if (organism.collidesRect(this.obstacle)) {
-                                organism.crashed = true;
+                            // Obstacles
+                            for (var index = 0; index < this.obstacles.length; index++) {
+                                var obstacle = this.obstacles[index];
+                                if (organism.collidesRect(obstacle)) {
+                                    organism.crashed = true;
+                                }
                             }
 
                             // Statistics
@@ -806,12 +843,16 @@ class World {
 
             // Target
             p5i.fill(p5i.color('red'));
-            p5i.ellipse(this.target.x, this.target.y, this.target.diameter);
+            p5i.ellipse(this.target.pos.x, this.target.pos.y, this.target.size.diameter);
 
-            // Obstacle
+            // Obstacles
             p5i.fill(255);
-            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
+            for (var index = 0; index < this.obstacles.length; index++) {
+                var obstacle = this.obstacles[index];
+                p5i.quad(obstacle.coors[0].x, obstacle.coors[0].y, obstacle.coors[1].x, obstacle.coors[1].y, obstacle.coors[2].x, obstacle.coors[2].y, obstacle.coors[3].x, obstacle.coors[3].y);
+            }
 
+            // Population
             if (this.population) {
                 for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
