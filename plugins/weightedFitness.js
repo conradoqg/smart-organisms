@@ -32,8 +32,8 @@ let onWorldAfterRender = () => {
     }
 };
 
-let onOrganismBeforeCalcFitness = (organism) => {
-    organism.fitnessCalculatorFn = calcFitness;
+let onOrganismBeforeCalcFitness = (event) => {
+    event.callback(calcFitness(event.organism, event.target));
 };
 
 let calcFitness = (organism, target) => {

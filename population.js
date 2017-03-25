@@ -28,13 +28,13 @@ class Population {
         return Promise
             .all(calcFitnessResults)
             .then(() => {
+                this.emitter.emit('afterAllFitnessCalculated', this);
+
                 // Find max fitness
                 let maxFit = 0;
-
                 for (let i = 0; i < this.organisms.length; i++) {
                     maxFit = Math.max(this.organisms[i].fitness, maxFit);
                 }
-                this.emitter.emit('afterAllFitnessCalculated', this);
 
                 // Map fitness between 0 and 1.        
                 for (let i = 0; i < this.organisms.length; i++) {

@@ -39,8 +39,14 @@ class Organism {
     }
 
     calcFitness(target) {
-        this.emitter.emit('beforeCalcFitness', this);
-        this.fitness = this.fitnessCalculatorFn(this, target);
+        let called = false;
+
+        this.emitter.emit('beforeCalcFitness', { organism: this, target: target, callback: (fitness) => {
+            this.fitness = fitness;
+            called = true;
+        }});
+
+        if (!called) this.fitness = this.fitnessCalculatorFn(this, target);
     }
 
     mate(partner) {

@@ -69,8 +69,8 @@ let onReset = () => {
     bitMap = null;
 };
 
-let onOrganismBeforeCalcFitness = (organism) => {
-    organism.fitnessCalculatorFn = calcFitness;
+let onOrganismBeforeCalcFitness = (event) => {
+    event.callback(calcFitness(event.organism, event.target));
 };
 
 function resize2DArray(arrayToReduce) {

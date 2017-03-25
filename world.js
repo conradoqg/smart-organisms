@@ -88,15 +88,19 @@ class World {
         this.fitnessCalculatorSelect = p5i.createSelect();
         this.fitnessCalculatorSelect.option('A*');
         this.fitnessCalculatorSelect.option('Weighted');
+        this.fitnessCalculatorSelect.option('Direct Distance');
         this.fitnessCalculatorSelect.changed(() => {
             let selected = this.fitnessCalculatorSelect.value();
 
             if (selected == 'A*') {
                 PluginManager.deactivate('weightedFitness');
                 PluginManager.activate('aStartFitness');
-            } else {
+            } else if (selected == 'Weighted') {
                 PluginManager.deactivate('aStartFitness');
                 PluginManager.activate('weightedFitness');
+            } else if (selected == 'Direct Distance') {
+                PluginManager.deactivate('aStartFitness');
+                PluginManager.deactivate('weightedFitness');
             }
         });
         this.fitnessCalculatorSelect.parent(this.settingsDiv);
