@@ -170,8 +170,8 @@ function aStarDistance(object, target) {
     let objectX = Math.min(Math.max(Math.round(object.x / xLenghtReduction), 0), bitMap[0].length - 1);
     let objectY = Math.min(Math.max(Math.round(object.y / xLenghtReduction), 0), bitMap.length - 1);
 
-    let targetX = Math.min(Math.max(Math.round(target.x / xLenghtReduction), 0), bitMap[0].length - 1);
-    let targetY = Math.min(Math.max(Math.round(target.y / xLenghtReduction), 0), bitMap.length - 1);
+    let targetX = Math.min(Math.max(Math.round(target.pos.x / xLenghtReduction), 0), bitMap[0].length - 1);
+    let targetY = Math.min(Math.max(Math.round(target.pos.y / xLenghtReduction), 0), bitMap.length - 1);
 
     // Setup the start and end points;
     var start = graph.grid[objectX][objectY];

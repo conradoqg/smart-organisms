@@ -63,16 +63,15 @@ class Organism {
     }
 
     collidesCircle(target) {
-        return p5i.collideCirclePoly(target.x, target.y, target.diameter, this.object.coors);
+        return p5i.collideCirclePoly(target.pos.x, target.pos.y, target.size.diameter, this.object.coors);
     }
 
-    collidesRect(target, inside = false) {
-        let targetCoors = p5i.getCoorsFromRect(target.x, target.y, target.width, target.height, p5i.CORNER);
-        return p5i.collidePolyPoly(targetCoors, this.object.coors, inside);
+    collidesRect(target, inside = false) {        
+        return p5i.collidePolyPoly(target.coors, this.object.coors, inside);
     }
 
     distanceTo(target) {
-        return p5i.dist(this.object.pos.x, this.object.pos.y, target.x, target.y);
+        return p5i.dist(this.object.pos.x, this.object.pos.y, target.pos.x, target.pos.y);
     }
 
     render() {

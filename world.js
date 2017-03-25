@@ -18,12 +18,7 @@ class World {
             y: 50,
             diameter: 20
         };
-        this.obstacle = {
-            x: 150,
-            y: 300,
-            width: 300,
-            height: 10
-        };
+
         this.emitter = new mitt();
         PluginManager.registerEmitter('world', this.emitter);
         PluginManager.activate('aStartFitness');
@@ -129,6 +124,36 @@ class World {
         p5i.randomSeed(this.config.seed);
 
         this.population = new Population(this.config.lifeSpan, this.config.popSize);
+
+        this.world = {};
+        this.world.type = 'rect';
+        this.world.size = { width: this.config.width, height: this.config.height };
+        this.world.pos = p5i.createVector(0, 0);
+        this.world.mode = p5i.CORNER;
+        this.world.moviment = {};
+        this.world.moviment.vel = p5i.createVector();
+        this.world.moviment.acc = p5i.createVector();
+        this.world.moviment.heading = null;
+        this.world.coors = p5i.getCoorsFromRect(this.world.pos.x, this.world.pos.y, this.world.size.width, this.world.size.height, this.world.mode, this.world.moviment.heading);
+
+        this.target = {};
+        this.target.type = 'ellipse';
+        this.target.size = { diameter: 20 };
+        this.target.pos = p5i.createVector(p5i.width / 2, 50);
+        this.target.mode = p5i.CENTER;
+
+        this.obstacle1 = {};
+        this.obstacle1.type = 'rect';
+        this.obstacle1.size = { width: 300, height: 10 };
+        this.obstacle1.pos = p5i.createVector(p5i.width / 2, p5i.height / 2);
+        this.obstacle1.mode = p5i.CENTER;
+        this.obstacle1.moviment = {};
+        this.obstacle1.moviment.vel = p5i.createVector();
+        this.obstacle1.moviment.acc = p5i.createVector();
+        this.obstacle1.moviment.heading = this.obstacle1.moviment.vel.heading();
+        this.obstacle1.coors = p5i.getCoorsFromRect(this.obstacle1.pos.x, this.obstacle1.pos.y, this.obstacle1.size.width, this.obstacle1.size.height, this.obstacle1.mode, this.obstacle1.moviment.heading);
+
+        this.obstacles = [this.obstacle1];
     }
 
     reset() {
@@ -165,13 +190,16 @@ class World {
                             }
 
                             // Off-screen
-                            if (organism.collidesRect({ x: 0, y: 0, width: this.config.width, height: this.config.height })) {
+                            if (organism.collidesRect(this.world)) {
                                 organism.crashed = true;
                             }
 
-                            // Obstacle
-                            if (organism.collidesRect(this.obstacle)) {
-                                organism.crashed = true;
+                            // Obstacles
+                            for (var index = 0; index < this.obstacles.length; index++) {
+                                var obstacle = this.obstacles[index];
+                                if (organism.collidesRect(obstacle)) {
+                                    organism.crashed = true;
+                                }
                             }
 
                             // Statistics
@@ -237,12 +265,16 @@ class World {
 
             // Target
             p5i.fill(p5i.color('red'));
-            p5i.ellipse(this.target.x, this.target.y, this.target.diameter);
+            p5i.ellipse(this.target.pos.x, this.target.pos.y, this.target.size.diameter);
 
-            // Obstacle
+            // Obstacles
             p5i.fill(255);
-            p5i.rect(this.obstacle.x, this.obstacle.y, this.obstacle.width, this.obstacle.height);
+            for (var index = 0; index < this.obstacles.length; index++) {
+                var obstacle = this.obstacles[index];
+                p5i.quad(obstacle.coors[0].x, obstacle.coors[0].y, obstacle.coors[1].x, obstacle.coors[1].y, obstacle.coors[2].x, obstacle.coors[2].y, obstacle.coors[3].x, obstacle.coors[3].y);
+            }
 
+            // Population
             if (this.population) {
                 for (let i = 0; i < this.population.organisms.length; i++) {
                     let organism = this.population.organisms[i];
