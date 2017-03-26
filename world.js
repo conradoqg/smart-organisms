@@ -1,5 +1,6 @@
 const Population = require('./population.js');
 const PluginManager = require('./pluginManager.js');
+const Mitt = require('mitt');
 
 class World {
     constructor() {
@@ -19,7 +20,7 @@ class World {
             diameter: 20
         };
 
-        this.emitter = new mitt();
+        this.emitter = new Mitt();
         PluginManager.registerEmitter('world', this.emitter);
         PluginManager.activate('aStartFitness');
     }

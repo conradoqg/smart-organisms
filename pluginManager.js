@@ -1,5 +1,6 @@
+const Mitt = require('mitt');
 let emitters = new Map();
-let pluginEmitter = new mitt();
+let pluginEmitter = new Mitt();
 
 class PluginManager {
     static getEmitter() {

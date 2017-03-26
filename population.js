@@ -1,5 +1,6 @@
 const Organism = require('./organism.js');
 const PluginManager = require('./pluginManager.js');
+const Mitt = require('mitt');
 
 class Population {
     constructor(geneAmount, popSize) {
@@ -10,7 +11,7 @@ class Population {
         for (let i = 0; i < this.popSize; i++) {
             this.organisms[i] = new Organism(geneAmount);
         }
-        this.emitter = new mitt();
+        this.emitter = new Mitt();
         PluginManager.registerEmitter('population', this.emitter);
     }
 

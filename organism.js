@@ -1,5 +1,6 @@
 const DNA = require('./dna.js');
 const PluginManager = require('./pluginManager.js');
+const Mitt = require('mitt');
 
 class Organism {
     constructor(dnaOrGeneAmount, bornAt) {
@@ -23,7 +24,7 @@ class Organism {
         this.fitness = 0;
         this.lifeSpan = 0;
         this.fitnessCalculatorFn = this.distance;
-        this.emitter = new mitt();
+        this.emitter = new Mitt();
         PluginManager.registerEmitter('organism', this.emitter);
     }
 
