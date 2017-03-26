@@ -4,8 +4,8 @@
   "description": "Simple genetic algorithm implementation for organisms",
   "main": "index.js",
   "dependencies": {
+    "browserify": "^14.1.0",
     "budo": "^9.4.7",
-    "browserify": "^14.1.0"
     "mitt": "^1.1.0"
   },
   "devDependencies": {},

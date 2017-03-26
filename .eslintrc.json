@@ -17,8 +17,7 @@
         "p5i": true,
         "store": true,
         "astar": true,
-        "Graph": true,
-        "mitt": true,
+        "Graph": true,        
         "uQuery": true
     },
     "rules": {

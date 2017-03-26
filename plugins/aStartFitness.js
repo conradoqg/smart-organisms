@@ -1,9 +1,8 @@
 let PluginManager = require('../pluginManager.js');
 let emitter = PluginManager.getEmitter();
 
-let bitMap = null;
+let cache = new Map();
 let reducationRate = .50;
-let cachedCleanGraph = null;
 let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
@@ -24,10 +23,10 @@ emitter.on('pluginManager-deactivate', (pluginID) => {
     }
 });
 
-let onWorldAfterRender = (world) => {
-    if (bitMap == null) {
+let onWorldAfterRender = () => {
+    if (!cache.has('bitMap')) {
         // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
-        bitMap = [];
+        let bitMap = [];
         let wallColor = p5i.color(255);
         p5i.loadPixels();
         for (var x = 0; x < p5i.width; x++) {
@@ -46,12 +45,12 @@ let onWorldAfterRender = (world) => {
             bitMap.push(row);
         }
 
-        bitMap = resize2DArray(bitMap);
+        cache.set('bitMap', resize2DArray(bitMap));
     }
 };
 
 let onReset = () => {
-    bitMap = null;
+    cache.delete('bitMap');
 };
 
 let onOrganismBeforeCalcFitness = (event) => {
@@ -99,7 +98,8 @@ function resize2DArray(arrayToReduce) {
 function calcFitness(organism, target) {
     if (!calculatedPaths) calculatedPaths = [];
     let distance = aStarDistance(organism.object.pos, target);
-    return weightedResult(organism, target, distance);
+    let fitness = weightedResult(organism, target, distance);
+    return fitness;
 }
 
 function weightedResult(organism, target, distance) {
@@ -137,30 +137,43 @@ function weightedResult(organism, target, distance) {
 
 function aStarDistance(object, target) {
 
+    let bitMap = cache.get('bitMap');
+
+    // Calculate resolution and length of the reduced bitMap
     let xResolution = bitMap.length * reducationRate;
     let xLenghtReduction = bitMap.length / xResolution;
 
-    // Cache here is important because it takes a while to create a Graph
-    let graph;
-    if (cachedCleanGraph == null) {
-        cachedCleanGraph = new Graph(bitMap);
-    } else {
-        // Clean graph for next execution
-        cachedCleanGraph.init();
-        cachedCleanGraph.cleanDirty();
-    }
-    graph = cachedCleanGraph;
-
-    // Limits X and Y for both object according the size of the bitmap
+    // Limits X and Y for both object according the size of the reduced bitmap
     let objectX = Math.min(Math.max(Math.round(object.x / xLenghtReduction), 0), bitMap[0].length - 1);
     let objectY = Math.min(Math.max(Math.round(object.y / xLenghtReduction), 0), bitMap.length - 1);
 
     let targetX = Math.min(Math.max(Math.round(target.pos.x / xLenghtReduction), 0), bitMap[0].length - 1);
-    let targetY = Math.min(Math.max(Math.round(target.pos.y / xLenghtReduction), 0), bitMap.length - 1);
+    let targetY = Math.min(Math.max(Math.round(target.pos.y / xLenghtReduction), 0), bitMap.length - 1);        
+
+    // Try to hit cache for given object and target coordinates
+    let hash = '' + objectX + objectY + targetX + targetY + '';
+    if (!cache.has('distances')) {
+        cache.set('distances', new Map());
+    } else {
+        if (cache.get('distances').has(hash)) {
+            return cache.get('distances').get(hash);
+        }
+    }    
+
+    // Cache graph, unfortunately it's not possible to clone the graph data because there are functions inside it, would be better if the functionality were separeted from data
+    let graph;
+    if (!cache.has('graph')) {
+        graph = new Graph(bitMap);
+        cache.set('graph', graph);
+    } else {
+        graph = cache.get('graph');
+        graph.init();
+        graph.cleanDirty();
+    }    
 
     // Setup the start and end points;
-    var start = graph.grid[objectX][objectY];
-    var end = graph.grid[targetX][targetY];
+    let start = graph.grid[objectX][objectY];
+    let end = graph.grid[targetX][targetY];
 
     // If the start point is a wall, find the nearest nonwall node
     if (start.isWall()) {
@@ -191,11 +204,16 @@ function aStarDistance(object, target) {
     calculatedPaths.push(result);
 
     let distance = (result.length == 0 ? null : result.length);
+
+    // Update distances cache
+    cache.get('distances').set(hash, distance);
+
     return distance;
 }
 
 let onAfterAllFitnessCalculated = (population) => {
     if (window.isDebuging) {
+        let bitMap = cache.get('bitMap');
         p5i.push();
         p5i.stroke('yellow');
         var xResolution = bitMap.length * reducationRate;
