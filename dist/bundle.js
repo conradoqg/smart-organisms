@@ -63,9 +63,13 @@ new p5((p5iinstance) => {
     p5iinstance.setup = word.setup.bind(word);
     window.p5i = p5iinstance;
 }, 'canvas');
-},{"./plugins/aStartFitness.js":5,"./plugins/weightedFitness.js":6,"./world.js":8}],3:[function(require,module,exports){
+},{"./plugins/aStartFitness.js":6,"./plugins/weightedFitness.js":7,"./world.js":9}],3:[function(require,module,exports){
+function n(n){return n=n||Object.create(null),{on:function(t,o){(n[t]||(n[t]=[])).push(o)},off:function(t,o){var u=n[t]||(n[t]=[]);u.splice(u.indexOf(o)>>>0,1)},emit:function(t,o){(n[t]||[]).map(function(n){n(o)}),(n["*"]||[]).map(function(n){n(t,o)})}}}module.exports=n;
+
+},{}],4:[function(require,module,exports){
 const DNA = require('./dna.js');
 const PluginManager = require('./pluginManager.js');
+const Mitt = require('mitt');
 
 class Organism {
     constructor(dnaOrGeneAmount, bornAt) {
@@ -88,33 +92,29 @@ class Organism {
         this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
         this.fitness = 0;
         this.lifeSpan = 0;
-        this.fitnessCalculatorFn = this.distance;
-        this.emitter = new mitt();
+        this.emitter = new Mitt();
         PluginManager.registerEmitter('organism', this.emitter);
     }
 
-    distance(organism, target) {
-        let invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
-
-        if (organism.completed) {
-            return invertedDistance *= 10;
-        }
-        if (organism.crashed) {
-            return invertedDistance /= 10;
-        }
-    }
-
     calcFitness(target) {
-        let called = false;
-
         this.emitter.emit('beforeCalcFitness', {
             organism: this, target: target, callback: (fitness) => {
-                this.fitness = fitness;
-                called = true;
+                this.fitness = fitness;                
             }
         });
 
-        if (!called) this.fitness = this.fitnessCalculatorFn(this, target);
+        // If fitness wasn't calculated by a plugin, fallback to the default distance fitness calculation.
+        if (this.fitness == 0) {
+            this.fitness = this.fitnessCalculatorFn(this, target);
+            let invertedDistance = Math.abs(p5i.width - this.distanceTo(target));
+
+            if (this.completed) {
+                this.fitness = invertedDistance *= 10;
+            }
+            if (this.crashed) {
+                this.fitness = invertedDistance /= 10;
+            }
+        }
     }
 
     mate(partner) {
@@ -158,9 +158,10 @@ class Organism {
 }
 
 module.exports = Organism;
-},{"./dna.js":1,"./pluginManager.js":4}],4:[function(require,module,exports){
+},{"./dna.js":1,"./pluginManager.js":5,"mitt":3}],5:[function(require,module,exports){
+const Mitt = require('mitt');
 let emitters = new Map();
-let pluginEmitter = new mitt();
+let pluginEmitter = new Mitt();
 
 class PluginManager {
     static getEmitter() {
@@ -182,13 +183,12 @@ class PluginManager {
 }
 
 module.exports = PluginManager;
-},{}],5:[function(require,module,exports){
+},{"mitt":3}],6:[function(require,module,exports){
 let PluginManager = require('../pluginManager.js');
 let emitter = PluginManager.getEmitter();
 
-let bitMap = null;
+let cache = new Map();
 let reducationRate = .50;
-let cachedCleanGraph = null;
 let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
@@ -209,10 +209,10 @@ emitter.on('pluginManager-deactivate', (pluginID) => {
     }
 });
 
-let onWorldAfterRender = (world) => {
-    if (bitMap == null) {
+let onWorldAfterRender = () => {
+    if (!cache.has('bitMap')) {
         // Create a map of the screen on the first execution setting up obstacles with 0 and paths with 1 based on the color of the screen pixel
-        bitMap = [];
+        let bitMap = [];
         let wallColor = p5i.color(255);
         p5i.loadPixels();
         for (var x = 0; x < p5i.width; x++) {
@@ -231,12 +231,12 @@ let onWorldAfterRender = (world) => {
             bitMap.push(row);
         }
 
-        bitMap = resize2DArray(bitMap);
+        cache.set('bitMap', resize2DArray(bitMap));
     }
 };
 
 let onReset = () => {
-    bitMap = null;
+    cache.delete('bitMap');
 };
 
 let onOrganismBeforeCalcFitness = (event) => {
@@ -284,7 +284,8 @@ function resize2DArray(arrayToReduce) {
 function calcFitness(organism, target) {
     if (!calculatedPaths) calculatedPaths = [];
     let distance = aStarDistance(organism.object.pos, target);
-    return weightedResult(organism, target, distance);
+    let fitness = weightedResult(organism, target, distance);
+    return fitness;
 }
 
 function weightedResult(organism, target, distance) {
@@ -322,30 +323,43 @@ function weightedResult(organism, target, distance) {
 
 function aStarDistance(object, target) {
 
+    let bitMap = cache.get('bitMap');
+
+    // Calculate resolution and length of the reduced bitMap
     let xResolution = bitMap.length * reducationRate;
     let xLenghtReduction = bitMap.length / xResolution;
 
-    // Cache here is important because it takes a while to create a Graph
-    let graph;
-    if (cachedCleanGraph == null) {
-        cachedCleanGraph = new Graph(bitMap);
-    } else {
-        // Clean graph for next execution
-        cachedCleanGraph.init();
-        cachedCleanGraph.cleanDirty();
-    }
-    graph = cachedCleanGraph;
-
-    // Limits X and Y for both object according the size of the bitmap
+    // Limits X and Y for both object according the size of the reduced bitmap
     let objectX = Math.min(Math.max(Math.round(object.x / xLenghtReduction), 0), bitMap[0].length - 1);
     let objectY = Math.min(Math.max(Math.round(object.y / xLenghtReduction), 0), bitMap.length - 1);
 
     let targetX = Math.min(Math.max(Math.round(target.pos.x / xLenghtReduction), 0), bitMap[0].length - 1);
-    let targetY = Math.min(Math.max(Math.round(target.pos.y / xLenghtReduction), 0), bitMap.length - 1);
+    let targetY = Math.min(Math.max(Math.round(target.pos.y / xLenghtReduction), 0), bitMap.length - 1);        
+
+    // Try to hit cache for given object and target coordinates
+    let hash = '' + objectX + objectY + targetX + targetY + '';
+    if (!cache.has('distances')) {
+        cache.set('distances', new Map());
+    } else {
+        if (cache.get('distances').has(hash)) {
+            return cache.get('distances').get(hash);
+        }
+    }    
+
+    // Cache graph, unfortunately it's not possible to clone the graph data because there are functions inside it, would be better if the functionality were separeted from data
+    let graph;
+    if (!cache.has('graph')) {
+        graph = new Graph(bitMap);
+        cache.set('graph', graph);
+    } else {
+        graph = cache.get('graph');
+        graph.init();
+        graph.cleanDirty();
+    }    
 
     // Setup the start and end points;
-    var start = graph.grid[objectX][objectY];
-    var end = graph.grid[targetX][targetY];
+    let start = graph.grid[objectX][objectY];
+    let end = graph.grid[targetX][targetY];
 
     // If the start point is a wall, find the nearest nonwall node
     if (start.isWall()) {
@@ -376,11 +390,16 @@ function aStarDistance(object, target) {
     calculatedPaths.push(result);
 
     let distance = (result.length == 0 ? null : result.length);
+
+    // Update distances cache
+    cache.get('distances').set(hash, distance);
+
     return distance;
 }
 
 let onAfterAllFitnessCalculated = (population) => {
     if (window.isDebuging) {
+        let bitMap = cache.get('bitMap');
         p5i.push();
         p5i.stroke('yellow');
         var xResolution = bitMap.length * reducationRate;
@@ -402,7 +421,7 @@ let onAfterAllFitnessCalculated = (population) => {
     }
     calculatedPaths = null;
 };
-},{"../pluginManager.js":4}],6:[function(require,module,exports){
+},{"../pluginManager.js":5}],7:[function(require,module,exports){
 let PluginManager = require('../pluginManager.js');
 let emitter = PluginManager.getEmitter();
 
@@ -487,9 +506,10 @@ let onAfterAllFitnessCalculated = (population) => {
     }
     calculatedPaths = null;
 };
-},{"../pluginManager.js":4}],7:[function(require,module,exports){
+},{"../pluginManager.js":5}],8:[function(require,module,exports){
 const Organism = require('./organism.js');
 const PluginManager = require('./pluginManager.js');
+const Mitt = require('mitt');
 
 class Population {
     constructor(geneAmount, popSize) {
@@ -500,7 +520,7 @@ class Population {
         for (let i = 0; i < this.popSize; i++) {
             this.organisms[i] = new Organism(geneAmount);
         }
-        this.emitter = new mitt();
+        this.emitter = new Mitt();
         PluginManager.registerEmitter('population', this.emitter);
     }
 
@@ -509,12 +529,12 @@ class Population {
 
         let calcFitnessResults = this.organisms.map((organism) => {
             return new Promise((resolve) => {
-                setImmediate(() => {
+                setImmediate(() => {                    
                     resolve(organism.calcFitness(target));
                 });
             });
         });
-
+        
         return Promise
             .all(calcFitnessResults)
             .then(() => {
@@ -556,9 +576,10 @@ class Population {
 }
 
 module.exports = Population;
-},{"./organism.js":3,"./pluginManager.js":4}],8:[function(require,module,exports){
+},{"./organism.js":4,"./pluginManager.js":5,"mitt":3}],9:[function(require,module,exports){
 const Population = require('./population.js');
 const PluginManager = require('./pluginManager.js');
+const Mitt = require('mitt');
 
 class World {
     constructor() {
@@ -578,7 +599,7 @@ class World {
             diameter: 20
         };
 
-        this.emitter = new mitt();
+        this.emitter = new Mitt();
         PluginManager.registerEmitter('world', this.emitter);
         PluginManager.activate('aStartFitness');
     }
@@ -873,4 +894,4 @@ class World {
 }
 
 module.exports = World;
-},{"./pluginManager.js":4,"./population.js":7}]},{},[2]);
+},{"./pluginManager.js":5,"./population.js":8,"mitt":3}]},{},[2]);
