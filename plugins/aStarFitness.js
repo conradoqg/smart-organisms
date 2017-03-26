@@ -6,7 +6,7 @@ let reducationRate = .50;
 let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
-    if (pluginID == 'aStartFitness') {
+    if (pluginID == 'aStarFitness') {
         emitter.on('world-afterRender', onWorldAfterRender);
         emitter.on('world-reset', onReset);
         emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
@@ -15,7 +15,7 @@ emitter.on('pluginManager-activate', (pluginID) => {
 });
 
 emitter.on('pluginManager-deactivate', (pluginID) => {
-    if (pluginID == 'aStartFitness') {
+    if (pluginID == 'aStarFitness') {
         emitter.off('world-afterRender', onWorldAfterRender);
         emitter.off('world-reset', onReset);
         emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);

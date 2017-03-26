@@ -22,7 +22,7 @@ class World {
 
         this.emitter = new Mitt();
         PluginManager.registerEmitter('world', this.emitter);
-        PluginManager.activate('aStartFitness');
+        PluginManager.activate('aStarFitness');
     }
 
     setup() {
@@ -95,12 +95,12 @@ class World {
 
             if (selected == 'A*') {
                 PluginManager.deactivate('weightedFitness');
-                PluginManager.activate('aStartFitness');
+                PluginManager.activate('aStarFitness');
             } else if (selected == 'Weighted') {
-                PluginManager.deactivate('aStartFitness');
+                PluginManager.deactivate('aStarFitness');
                 PluginManager.activate('weightedFitness');
             } else if (selected == 'Direct Distance') {
-                PluginManager.deactivate('aStartFitness');
+                PluginManager.deactivate('aStarFitness');
                 PluginManager.deactivate('weightedFitness');
             }
         });
