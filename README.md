@@ -24,30 +24,30 @@ To achieve that I created the following list of improvements:
 ### Performance bottlenecks
 
 #### A* pathfinding
-The major performance issue I has was the A* algorithm. I'm using [this](https://github.com/bgrins/javascript-astar) lib, which is a nice implementation of the algorithm, however, my initial idea was to create a grid of 600x600 (the canvas size) and set the walkable paths from its colors (like black for passable paths and white for walls).
-I found myself waiting between 10 and 15 seconds for the calculation of all 100 organisms paths in order to give a fitness score to all organisms. This calculation must be done at the end of a generation.
+The major performance issue I had was the A* algorithm. I'm using [this](https://github.com/bgrins/javascript-astar) lib, which is a nice implementation of the algorithm, however, my initial idea was to create a grid of 600x600 (the canvas size) and determine the walkable paths from its colors (black for passable paths and white for walls).
+I found myself waiting between 10 and 15 seconds for the calculation of all 100 organisms paths in order to give a fitness score to all organisms. This calculation must be done at the end of every generation.
 
 To improve the total time needed I cached the created graph and every new path search I simply clean the graph. Unfortunately, that algorithm mixes the data with the function so it's not possible to shallow copy the graph and because of that, I need to reset and clear every node in that graph (600*600 = 360,000 nodes). There is still row for improvement here.
 
-Still, the total time need was very large, between 7 and 11 seconds. I needed to improve more. After a night or two wondering how it could be done I found two possible solutions: shrinking the canvas size or caching every possible combination of paths and it's distances. I decided to start with the first one and that proved to be an acceptable solution.
+Even though, the total time need was very large, between 7 and 11 seconds. I needed to improve more. After a night or two wondering how it could be done I found two possible solutions: shrinking the canvas size or caching every possible combination of paths and it's distances. I decided to start with the first one and that proved to be an acceptable solution.
 
 The idea I had came from JPEG compression, it's not the same algorithm of course, but the idea is the same, instead of calculating a path in a 600x600 canvas, I reduce that canvas size by X% and then calculate the distance between these two points in a smaller version of the canvas-map representation. The solution made the distance less accurate but it did in an even manner for all organisms, so no losses here.
 
-This time, reducing the canvas size by 50% made the timing go from 7 and 11 seconds to < 1 seconds. After more caching and profiles to find more slow parts it decreased to < 400ms in my machine.
+This time, reducing the canvas size by 50% made the timing go from 7-11 seconds to < 1 seconds. After more caching and profiles to find slow parts it decreased to < 400ms in my machine.
 
-Interesting results, I wonder how they do in games with paths larger than mine. Do they maybe do the same?
+Interesting results, I wonder how they do in games with paths larger than mine. Do they do the same?
 
 ![A* paths and fitness result](img/aStarPathsAndFitnessResult.png)
 
 #### Functional programming
 At the beginning, because I love working with functional programming and libs like [ramda](http://ramdajs.com/) everything was planned to be made with it.
-After a while I understood that one of my goals was performance, and I need to tell you, 1600 ticks and 60 FPS rate doesn't go together with functional programming. It seems that every bit of performance needs to me squeezed to make it cool. So it was easy to abandon that idea. You can see basic fors everywhere.
+After a while I understood that one of my goals was performance, and I need to tell you, 1600 ticks and 60 FPS rate doesn't go together with functional programming. It seems that every bit of performance needs to be squeezed to make it fast enough. So it wasn't easy to abandon that idea. You can see basic fors everywhere.
 
 An interesting thing I found is that using `var` in a `for` is better than the new `let`, because of reasons.
 
 ### Colissions
 
-The canvas object and the p5 library provides ways to rotate objects but it does the rotation internally and because of that it's not possible to know the vectors of the object (I didn't find) and therefore calculates the collision by its vertices.
+The canvas object and the p5 library provides ways to rotate objects but it does the rotation internally and because of that it's not possible to know the vectors of the rotated object (I didn't find a way) and therefore to use it to calculate the collision by its vertices.
 
 To help me with that I found the formula to rotate vectors around an origin:
 ```
@@ -55,9 +55,9 @@ var newX = Math.cos(angle) * (this.x - origin.x) - Math.sin(angle) * (this.y - o
 var newY = Math.sin(angle) * (this.x - origin.x) + Math.cos(angle) * (this.y - origin.y) + origin.y;
 ```
 
-Because of this, instead of leveraging the rotation to canvas/p5 I do it by myself improving performance (because I can do only one time and use that for rendering and calculation collisions).
+Because of this, instead of leveraging the rotation to canvas/p5 I do it by myself improving performance (because I can do only one time and use that for rendering and colissions calculation).
 
-The p5 doesn't have a collision system so I used a custom version of [p5.collide2D](https://github.com/bmoren/p5.collide2D).
+The p5 doesn't have a collision system so I took advantage of a custom version of [p5.collide2D](https://github.com/bmoren/p5.collide2D) that I made.
 
 I'm happy with the results and because of that, I can check collision in angled rectangles.
 
