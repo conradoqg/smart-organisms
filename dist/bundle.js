@@ -48,7 +48,7 @@ module.exports = DNA;
  *  
  */
 
-require('./plugins/aStartFitness.js');require('./plugins/weightedFitness.js');
+require('./plugins/aStarFitness.js');require('./plugins/weightedFitness.js');
 
 p5.disableFriendlyErrors = true;
 
@@ -63,7 +63,7 @@ new p5((p5iinstance) => {
     p5iinstance.setup = word.setup.bind(word);
     window.p5i = p5iinstance;
 }, 'canvas');
-},{"./plugins/aStartFitness.js":6,"./plugins/weightedFitness.js":7,"./world.js":9}],3:[function(require,module,exports){
+},{"./plugins/aStarFitness.js":6,"./plugins/weightedFitness.js":7,"./world.js":9}],3:[function(require,module,exports){
 function n(n){return n=n||Object.create(null),{on:function(t,o){(n[t]||(n[t]=[])).push(o)},off:function(t,o){var u=n[t]||(n[t]=[]);u.splice(u.indexOf(o)>>>0,1)},emit:function(t,o){(n[t]||[]).map(function(n){n(o)}),(n["*"]||[]).map(function(n){n(t,o)})}}}module.exports=n;
 
 },{}],4:[function(require,module,exports){
@@ -104,8 +104,7 @@ class Organism {
         });
 
         // If fitness wasn't calculated by a plugin, fallback to the default distance fitness calculation.
-        if (this.fitness == 0) {
-            this.fitness = this.fitnessCalculatorFn(this, target);
+        if (this.fitness == 0) {            
             let invertedDistance = Math.abs(p5i.width - this.distanceTo(target));
 
             if (this.completed) {
@@ -192,7 +191,7 @@ let reducationRate = .50;
 let calculatedPaths = null;
 
 emitter.on('pluginManager-activate', (pluginID) => {
-    if (pluginID == 'aStartFitness') {
+    if (pluginID == 'aStarFitness') {
         emitter.on('world-afterRender', onWorldAfterRender);
         emitter.on('world-reset', onReset);
         emitter.on('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
@@ -201,7 +200,7 @@ emitter.on('pluginManager-activate', (pluginID) => {
 });
 
 emitter.on('pluginManager-deactivate', (pluginID) => {
-    if (pluginID == 'aStartFitness') {
+    if (pluginID == 'aStarFitness') {
         emitter.off('world-afterRender', onWorldAfterRender);
         emitter.off('world-reset', onReset);
         emitter.off('organism-beforeCalcFitness', onOrganismBeforeCalcFitness);
@@ -601,7 +600,7 @@ class World {
 
         this.emitter = new Mitt();
         PluginManager.registerEmitter('world', this.emitter);
-        PluginManager.activate('aStartFitness');
+        PluginManager.activate('aStarFitness');
     }
 
     setup() {
@@ -674,12 +673,12 @@ class World {
 
             if (selected == 'A*') {
                 PluginManager.deactivate('weightedFitness');
-                PluginManager.activate('aStartFitness');
+                PluginManager.activate('aStarFitness');
             } else if (selected == 'Weighted') {
-                PluginManager.deactivate('aStartFitness');
+                PluginManager.deactivate('aStarFitness');
                 PluginManager.activate('weightedFitness');
             } else if (selected == 'Direct Distance') {
-                PluginManager.deactivate('aStartFitness');
+                PluginManager.deactivate('aStarFitness');
                 PluginManager.deactivate('weightedFitness');
             }
         });

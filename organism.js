@@ -35,8 +35,7 @@ class Organism {
         });
 
         // If fitness wasn't calculated by a plugin, fallback to the default distance fitness calculation.
-        if (this.fitness == 0) {
-            this.fitness = this.fitnessCalculatorFn(this, target);
+        if (this.fitness == 0) {            
             let invertedDistance = Math.abs(p5i.width - this.distanceTo(target));
 
             if (this.completed) {

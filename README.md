@@ -59,7 +59,7 @@ Because of this, instead of leveraging the rotation to canvas/p5 I do it by myse
 
 The p5 doesn't have a collision system so I used a custom version of [p5.collide2D](https://github.com/bmoren/p5.collide2D).
 
-I'm happy with the results and because of that, I can check collision in angles rectangles.
+I'm happy with the results and because of that, I can check collision in angled rectangles.
 
 ![Collisions on angled rectangles](img/collisionsOnAngledRectangles.png)
 
