@@ -23,33 +23,29 @@ class Organism {
         this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
         this.fitness = 0;
         this.lifeSpan = 0;
-        this.fitnessCalculatorFn = this.distance;
         this.emitter = new Mitt();
         PluginManager.registerEmitter('organism', this.emitter);
     }
 
-    distance(organism, target) {
-        let invertedDistance = Math.abs(p5i.width - organism.distanceTo(target));
-
-        if (organism.completed) {
-            return invertedDistance *= 10;
-        }
-        if (organism.crashed) {
-            return invertedDistance /= 10;
-        }
-    }
-
     calcFitness(target) {
-        let called = false;
-
         this.emitter.emit('beforeCalcFitness', {
             organism: this, target: target, callback: (fitness) => {
-                this.fitness = fitness;
-                called = true;
+                this.fitness = fitness;                
             }
         });
 
-        if (!called) this.fitness = this.fitnessCalculatorFn(this, target);
+        // If fitness wasn't calculated by a plugin, fallback to the default distance fitness calculation.
+        if (this.fitness == 0) {
+            this.fitness = this.fitnessCalculatorFn(this, target);
+            let invertedDistance = Math.abs(p5i.width - this.distanceTo(target));
+
+            if (this.completed) {
+                this.fitness = invertedDistance *= 10;
+            }
+            if (this.crashed) {
+                this.fitness = invertedDistance /= 10;
+            }
+        }
     }
 
     mate(partner) {
