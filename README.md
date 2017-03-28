@@ -3,35 +3,35 @@
 
 Based on the work of Daniel Shiffman: http://codingtra.in
 
-You can run with it [here](https://rawgit.com/conradoqg/study-nano-projects/master/smart-organisms/index.html).
+You can run it [here](https://rawgit.com/conradoqg/study-nano-projects/master/smart-organisms/index.html).
 
 ## Goals
 
-The goals of this nano project are to understand how far I could go to improve the smart rockets project from Daniel Shiffman. 
+The goal of this nano project was to understand how much I could to improve the smart rockets project from Daniel Shiffman. 
 
 To achieve that I created the following list of improvements:
 1. Make the canvas larger so it can be more interesting, especially when dealing with performance improvements;
-2. Change the way it calculates the fitness of an organism. Later, this would prove to be a good idea because after some improvements it was possible to add more obstacles and keep the genetic algorithm reliable in finding the more challenging paths.
+2. Change the way it calculates the fitness of an organism. Later, this would prove to be a good idea because after some improvements it was possible to add more obstacles and keep the genetic algorithm reliable in finding more challenging paths.
 3. Improve code organization and componentization;
-4. See how far the genetic algorithm would go and make the organisms reach the target (hit rate);
+4. See how far the genetic algorithm would go to make the organisms reach the target (hit rate);
 5. Add more fitness calculation algorithms to see how the simulation responds to it;
 6. Add historical statistics to visualize the evolution of the genetic algorithm;
 7. Add controls to manage the environment (population size, speed, number of organisms, fitness algorithm chooser, play/pause and reset);
 8. Create a plugin system;
-9. Correctly calculate collisions of rotated objects, it would prove to be harder than I thought;
+9. Correctly calculate collisions of rotated objects. This would prove to be harder than I thought;
 10. Add more obstacles!
 
-### Performance bottlenecks
+### Performance bottlenecks``
 
 #### A* pathfinding
 The major performance issue I had was the A* algorithm. I'm using [this](https://github.com/bgrins/javascript-astar) lib, which is a nice implementation of the algorithm, however, my initial idea was to create a grid of 600x600 (the canvas size) and determine the walkable paths from its colors (black for passable paths and white for walls).
-I found myself waiting between 10 and 15 seconds for the calculation of all 100 organisms paths in order to give a fitness score to all organisms. This calculation must be done at the end of every generation.
+I found myself waiting between 10 and 15 seconds for the calculation of all 100 organism paths in order to give a fitness score to all organisms. This calculation must be done at the end of every generation.
 
 To improve the total time needed I cached the created graph and every new path search I simply clean the graph. Unfortunately, that algorithm mixes the data with the function so it's not possible to shallow copy the graph and because of that, I need to reset and clear every node in that graph (600*600 = 360,000 nodes). There is still row for improvement here.
 
-Even though, the total time need was very large, between 7 and 11 seconds. I needed to improve more. After a night or two wondering how it could be done I found two possible solutions: shrinking the canvas size or caching every possible combination of paths and it's distances. I decided to start with the first one and that proved to be an acceptable solution.
+Even though the total time need was very large, between 7 and 11 seconds, I needed to improve it more. After a night or two wondering how it could be done I found two possible solutions: shrinking the canvas size or caching every possible combination of paths and their distances. I decided to start with the first one and that proved to be an acceptable solution.
 
-The idea I had came from JPEG compression, it's not the same algorithm of course, but the idea is the same, instead of calculating a path in a 600x600 canvas, I reduce that canvas size by X% and then calculate the distance between these two points in a smaller version of the canvas-map representation. The solution made the distance less accurate but it did in an even manner for all organisms, so no losses here.
+The idea I had came from JPEG compression, it's not the same algorithm of course, but the idea is the same. Instead of calculating a path in a 600x600 canvas, I reduce that canvas size by X% and then calculate the distance between these two points in a smaller version of the canvas-map representation. The solution made the distance less accurate but it did in an even manner for all organisms, so no losses here.
 
 This time, reducing the canvas size by 50% made the timing go from 7-11 seconds to < 1 seconds. After more caching and profiles to find slow parts it decreased to < 400ms in my machine.
 
