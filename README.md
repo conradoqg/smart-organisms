@@ -55,9 +55,9 @@ var newX = Math.cos(angle) * (this.x - origin.x) - Math.sin(angle) * (this.y - o
 var newY = Math.sin(angle) * (this.x - origin.x) + Math.cos(angle) * (this.y - origin.y) + origin.y;
 ```
 
-Because of this, instead of leveraging the rotation to canvas/p5 I do it by myself improving performance (because I can do only one time and use that for rendering and colissions calculation).
+Because of this, instead of leveraging the rotation to canvas/p5 I do it by myself, improving the performance (because I can do only one time and use that for rendering and colissions calculation).
 
-The p5 doesn't have a collision system so I took advantage of a custom version of [p5.collide2D](https://github.com/bmoren/p5.collide2D) that I made.
+The p5 doesn't have a collision system so I took advantage of [p5.collide2D](https://github.com/bmoren/p5.collide2D).
 
 I'm happy with the results and because of that, I can check collision in angled rectangles.
 
