@@ -115,7 +115,7 @@ function weightedResult(organism, target, distance) {
 
     // Lifespane constants
     const minLifespan = 0;
-    const maxLifespan = organism.dna.genes.moviment.length;
+    const maxLifespan = organism.dna.genes.movement.length;
     let lifeSpan = organism.lifeSpan;
 
     // Weights

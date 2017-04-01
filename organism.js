@@ -13,10 +13,10 @@ class Organism {
         this.object.size = { width: this.dna.genes.size.width, height: this.dna.genes.size.height };
         this.object.pos = bornAt.sub(this.object.size.width / 2, this.object.size.height / 2);
         this.object.mode = p5i.CENTER;
-        this.object.moviment = {};
-        this.object.moviment.vel = p5i.createVector();
-        this.object.moviment.acc = p5i.createVector();
-        this.object.moviment.heading = this.object.moviment.vel.heading();
+        this.object.movement = {};
+        this.object.movement.vel = p5i.createVector();
+        this.object.movement.acc = p5i.createVector();
+        this.object.movement.heading = this.object.movement.vel.heading();
         this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode);
 
         this.initialPos = this.object.pos.copy();
@@ -58,13 +58,13 @@ class Organism {
         if (!this.completed && !this.crashed) {
             this.lifeSpan = lifeSpanTimer;
 
-            this.object.moviment.acc.add(this.dna.getNextMove(lifeSpanTimer));
-            this.object.moviment.vel.add(this.object.moviment.acc);
-            this.object.pos.add(this.object.moviment.vel);
-            this.object.moviment.acc.mult(0);
-            this.object.moviment.vel.limit(4);            
-            this.object.moviment.heading = this.object.moviment.vel.heading();
-            this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode, this.object.moviment.heading);
+            this.object.movement.acc.add(this.dna.getNextMove(lifeSpanTimer));
+            this.object.movement.vel.add(this.object.movement.acc);
+            this.object.pos.add(this.object.movement.vel);
+            this.object.movement.acc.mult(0);
+            this.object.movement.vel.limit(4);            
+            this.object.movement.heading = this.object.movement.vel.heading();
+            this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode, this.object.movement.heading);
         }
     }
 

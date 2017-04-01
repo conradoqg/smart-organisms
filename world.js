@@ -135,11 +135,11 @@ class World {
         this.world.size = { width: this.config.width, height: this.config.height };
         this.world.pos = p5i.createVector(0, 0);
         this.world.mode = p5i.CORNER;
-        this.world.moviment = {};
-        this.world.moviment.vel = p5i.createVector();
-        this.world.moviment.acc = p5i.createVector();
-        this.world.moviment.heading = null;
-        this.world.coors = p5i.getCoorsFromRect(this.world.pos.x, this.world.pos.y, this.world.size.width, this.world.size.height, this.world.mode, this.world.moviment.heading);
+        this.world.movement = {};
+        this.world.movement.vel = p5i.createVector();
+        this.world.movement.acc = p5i.createVector();
+        this.world.movement.heading = null;
+        this.world.coors = p5i.getCoorsFromRect(this.world.pos.x, this.world.pos.y, this.world.size.width, this.world.size.height, this.world.mode, this.world.movement.heading);
 
         this.target = {};
         this.target.type = 'ellipse';
@@ -152,33 +152,33 @@ class World {
         this.obstacle1.size = { width: 300, height: 10 };
         this.obstacle1.pos = p5i.createVector(p5i.width / 2, (p5i.height / 2) + (p5i.height / 4));
         this.obstacle1.mode = p5i.CENTER;
-        this.obstacle1.moviment = {};
-        this.obstacle1.moviment.vel = p5i.createVector();
-        this.obstacle1.moviment.acc = p5i.createVector();
-        this.obstacle1.moviment.heading = this.obstacle1.moviment.vel.heading();
-        this.obstacle1.coors = p5i.getCoorsFromRect(this.obstacle1.pos.x, this.obstacle1.pos.y, this.obstacle1.size.width, this.obstacle1.size.height, this.obstacle1.mode, this.obstacle1.moviment.heading);
+        this.obstacle1.movement = {};
+        this.obstacle1.movement.vel = p5i.createVector();
+        this.obstacle1.movement.acc = p5i.createVector();
+        this.obstacle1.movement.heading = this.obstacle1.movement.vel.heading();
+        this.obstacle1.coors = p5i.getCoorsFromRect(this.obstacle1.pos.x, this.obstacle1.pos.y, this.obstacle1.size.width, this.obstacle1.size.height, this.obstacle1.mode, this.obstacle1.movement.heading);
 
         this.obstacle2 = {};
         this.obstacle2.type = 'rect';
         this.obstacle2.size = { width: 150, height: 5 };
         this.obstacle2.pos = p5i.createVector((p5i.width / 2) / 2, (p5i.height / 3));
         this.obstacle2.mode = p5i.CENTER;
-        this.obstacle2.moviment = {};
-        this.obstacle2.moviment.vel = p5i.createVector();
-        this.obstacle2.moviment.acc = p5i.createVector();
-        this.obstacle2.moviment.heading = p5i.PI + p5i.QUARTER_PI;
-        this.obstacle2.coors = p5i.getCoorsFromRect(this.obstacle2.pos.x, this.obstacle2.pos.y, this.obstacle2.size.width, this.obstacle2.size.height, this.obstacle2.mode, this.obstacle2.moviment.heading);
+        this.obstacle2.movement = {};
+        this.obstacle2.movement.vel = p5i.createVector();
+        this.obstacle2.movement.acc = p5i.createVector();
+        this.obstacle2.movement.heading = p5i.PI + p5i.QUARTER_PI;
+        this.obstacle2.coors = p5i.getCoorsFromRect(this.obstacle2.pos.x, this.obstacle2.pos.y, this.obstacle2.size.width, this.obstacle2.size.height, this.obstacle2.mode, this.obstacle2.movement.heading);
 
         this.obstacle3 = {};
         this.obstacle3.type = 'rect';
         this.obstacle3.size = { width: 150, height: 5 };
         this.obstacle3.pos = p5i.createVector((p5i.width / 2) + (p5i.height / 4), (p5i.height / 3));
         this.obstacle3.mode = p5i.CENTER;
-        this.obstacle3.moviment = {};
-        this.obstacle3.moviment.vel = p5i.createVector();
-        this.obstacle3.moviment.acc = p5i.createVector();
-        this.obstacle3.moviment.heading = p5i.PI - p5i.QUARTER_PI;
-        this.obstacle3.coors = p5i.getCoorsFromRect(this.obstacle3.pos.x, this.obstacle3.pos.y, this.obstacle3.size.width, this.obstacle3.size.height, this.obstacle3.mode, this.obstacle3.moviment.heading);
+        this.obstacle3.movement = {};
+        this.obstacle3.movement.vel = p5i.createVector();
+        this.obstacle3.movement.acc = p5i.createVector();
+        this.obstacle3.movement.heading = p5i.PI - p5i.QUARTER_PI;
+        this.obstacle3.coors = p5i.getCoorsFromRect(this.obstacle3.pos.x, this.obstacle3.pos.y, this.obstacle3.size.width, this.obstacle3.size.height, this.obstacle3.mode, this.obstacle3.movement.heading);
 
         this.obstacles = [this.obstacle1, this.obstacle2, this.obstacle3];
     }

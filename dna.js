@@ -4,47 +4,47 @@ const AVERAGESIZE = {
 };
 
 class DNA {
-    constructor(movimentGenesAmount) {
+    constructor(movementGenesAmount) {
         let porpotion = p5i.random(0.50, 1.50);
         this.genes = {
-            moviment: [],
+            movement: [],
             size: {
                 width: AVERAGESIZE.WIDTH * porpotion,
                 height: AVERAGESIZE.HEIGHT * porpotion,
             },
             maxForce: p5i.random(0.1, 0.3)
         };
-        for (let i = 0; i < movimentGenesAmount; i++) {
-            this.genes.moviment[i] = this.createNewMovimentGene();
+        for (let i = 0; i < movementGenesAmount; i++) {
+            this.genes.movement[i] = this.createNewMovementGene();
         }
     }
 
     crossover(partner) {
-        const newDNA = new DNA(this.genes.moviment.length);
-        newDNA.genes.moviment = this.crossoverMoviment(partner);
+        const newDNA = new DNA(this.genes.movement.length);
+        newDNA.genes.movement = this.crossoverMovement(partner);
         newDNA.genes.size = this.crossoverSize(partner);
         newDNA.genes.maxForce = this.crossoverMaxForce(partner);        
         return newDNA;
     }
 
-    crossoverMoviment(partner) {
-        // Selects a random mid point position and cross the dna genes from that mid point
-        let newMovimentGenes = [];
-        let mid = p5i.floor(p5i.random(this.genes.moviment.length));
-        for (let i = 0; i < this.genes.moviment.length; i++) {
-            // Set the gene from itself or form its partner depending on the mid point.
+    crossoverMovement(partner) {
+        // Selects a random midpoint position and cross the dna genes from that midpoint
+        let newMovementGenes = [];
+        let mid = p5i.floor(p5i.random(this.genes.movement.length));
+        for (let i = 0; i < this.genes.movement.length; i++) {
+            // Set the gene from itself or form its partner depending on the midpoint.
             if (i > mid) {
-                newMovimentGenes[i] = this.genes.moviment[i];
+                newMovementGenes[i] = this.genes.movement[i];
             } else {
-                newMovimentGenes[i] = partner.genes.moviment[i];
+                newMovementGenes[i] = partner.genes.movement[i];
             }
 
             // Mutate the gene which will bring diversity to the organism. 0.01 mutation chance
             if (p5i.random(1) < 0.01) {
-                newMovimentGenes[i] = this.createNewMovimentGene();
+                newMovementGenes[i] = this.createNewMovementGene();
             }
         }
-        return newMovimentGenes;
+        return newMovementGenes;
     }
 
     crossoverSize(partner) {
@@ -63,15 +63,15 @@ class DNA {
         return newMaxForce;
     }
 
-    createNewMovimentGene() {
+    createNewMovementGene() {
         // Creates a new gene randomly
-        let newMovimentGene = p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1));
-        newMovimentGene.setMag(this.genes.maxForce);
-        return newMovimentGene;
+        let newMovementGene = p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1));
+        newMovementGene.setMag(this.genes.maxForce);
+        return newMovementGene;
     }
 
     getNextMove(tick) {
-        return this.genes.moviment[tick];
+        return this.genes.movement[tick];
     }
 }
 
