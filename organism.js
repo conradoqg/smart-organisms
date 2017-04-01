@@ -6,9 +6,11 @@ class Organism {
     constructor(dnaOrGeneAmount, bornAt) {
         bornAt = (bornAt == null ? p5i.createVector(p5i.width / 2, p5i.height - 10) : bornAt);
 
+        this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
+
         this.object = {};
         this.object.type = 'rect';
-        this.object.size = { width: 25, height: 5 };
+        this.object.size = { width: this.dna.genes.size.width, height: this.dna.genes.size.height };
         this.object.pos = bornAt.sub(this.object.size.width / 2, this.object.size.height / 2);
         this.object.mode = p5i.CENTER;
         this.object.moviment = {};
@@ -20,7 +22,7 @@ class Organism {
         this.initialPos = this.object.pos.copy();
         this.completed = false;
         this.crashed = false;
-        this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
+        
         this.fitness = 0;
         this.lifeSpan = 0;
         this.emitter = new Mitt();
@@ -56,11 +58,11 @@ class Organism {
         if (!this.completed && !this.crashed) {
             this.lifeSpan = lifeSpanTimer;
 
-            this.object.moviment.acc.add(this.dna.genes[lifeSpanTimer]);
+            this.object.moviment.acc.add(this.dna.getNextMove(lifeSpanTimer));
             this.object.moviment.vel.add(this.object.moviment.acc);
             this.object.pos.add(this.object.moviment.vel);
             this.object.moviment.acc.mult(0);
-            this.object.moviment.vel.limit(4);
+            this.object.moviment.vel.limit(4);            
             this.object.moviment.heading = this.object.moviment.vel.heading();
             this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode, this.object.moviment.heading);
         }
