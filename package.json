@@ -1,6 +1,6 @@
 {
   "name": "smart-organisms",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Simple genetic algorithm implementation for organisms",
   "main": "index.js",
   "dependencies": {

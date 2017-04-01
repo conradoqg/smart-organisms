@@ -1,41 +1,78 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+const AVERAGESIZE = {
+    WIDTH: 25,
+    HEIGHT: 5
+};
+
 class DNA {
-    constructor(genesAmount) {
-        this.genes = [];
-        this.genesAmount = genesAmount;
-        this.maxforce = 0.2;
-        for (let i = 0; i < genesAmount; i++) {
-            this.genes[i] = this.createNewGene();
+    constructor(movimentGenesAmount) {
+        let porpotion = p5i.random(0.50, 1.50);
+        this.genes = {
+            moviment: [],
+            size: {
+                width: AVERAGESIZE.WIDTH * porpotion,
+                height: AVERAGESIZE.HEIGHT * porpotion,
+            },
+            maxForce: p5i.random(0.1, 0.3)
+        };
+        for (let i = 0; i < movimentGenesAmount; i++) {
+            this.genes.moviment[i] = this.createNewMovimentGene();
         }
     }
 
     crossover(partner) {
+        const newDNA = new DNA(this.genes.moviment.length);
+        newDNA.genes.moviment = this.crossoverMoviment(partner);
+        newDNA.genes.size = this.crossoverSize(partner);
+        newDNA.genes.maxForce = this.crossoverMaxForce(partner);        
+        return newDNA;
+    }
+
+    crossoverMoviment(partner) {
         // Selects a random mid point position and cross the dna genes from that mid point
-        let newGenes = [];
-        let mid = p5i.floor(p5i.random(this.genes.length));
-        for (let i = 0; i < this.genes.length; i++) {
+        let newMovimentGenes = [];
+        let mid = p5i.floor(p5i.random(this.genes.moviment.length));
+        for (let i = 0; i < this.genes.moviment.length; i++) {
             // Set the gene from itself or form its partner depending on the mid point.
             if (i > mid) {
-                newGenes[i] = this.genes[i];
+                newMovimentGenes[i] = this.genes.moviment[i];
             } else {
-                newGenes[i] = partner.genes[i];
+                newMovimentGenes[i] = partner.genes.moviment[i];
             }
 
             // Mutate the gene which will bring diversity to the organism. 0.01 mutation chance
             if (p5i.random(1) < 0.01) {
-                newGenes[i] = this.createNewGene();
+                newMovimentGenes[i] = this.createNewMovimentGene();
             }
         }
-        const newDNA = new DNA(this.genesAmount);
-        newDNA.genes = newGenes;
-        return newDNA;
+        return newMovimentGenes;
     }
 
-    createNewGene() {
+    crossoverSize(partner) {
+        let newSizeGene = {};
+
+        // New size will be somewhere between this DNA size and its partner with 0.01 size mutation
+        newSizeGene.width = p5i.random(this.genes.size.width, partner.genes.size.width) * p5i.random(0.99, 1.01);
+        newSizeGene.height = p5i.random(this.genes.size.height, partner.genes.size.height) * p5i.random(0.99, 1.01);
+
+        return newSizeGene;
+    }
+
+    crossoverMaxForce(partner) {
+        // New max force will be somewhere between this DNA max force and its partner with 0.01 max force mutation
+        let newMaxForce = p5i.random(this.genes.maxForce + partner.genes.maxForce) * p5i.random(0.99, 1.01);
+        return newMaxForce;
+    }
+
+    createNewMovimentGene() {
         // Creates a new gene randomly
-        let newGene = p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1));
-        newGene.setMag(this.maxforce);
-        return newGene;
+        let newMovimentGene = p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1));
+        newMovimentGene.setMag(this.genes.maxForce);
+        return newMovimentGene;
+    }
+
+    getNextMove(tick) {
+        return this.genes.moviment[tick];
     }
 }
 
@@ -75,9 +112,11 @@ class Organism {
     constructor(dnaOrGeneAmount, bornAt) {
         bornAt = (bornAt == null ? p5i.createVector(p5i.width / 2, p5i.height - 10) : bornAt);
 
+        this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
+
         this.object = {};
         this.object.type = 'rect';
-        this.object.size = { width: 25, height: 5 };
+        this.object.size = { width: this.dna.genes.size.width, height: this.dna.genes.size.height };
         this.object.pos = bornAt.sub(this.object.size.width / 2, this.object.size.height / 2);
         this.object.mode = p5i.CENTER;
         this.object.moviment = {};
@@ -89,7 +128,7 @@ class Organism {
         this.initialPos = this.object.pos.copy();
         this.completed = false;
         this.crashed = false;
-        this.dna = (typeof (dnaOrGeneAmount) == 'number' ? new DNA(dnaOrGeneAmount) : dnaOrGeneAmount);
+        
         this.fitness = 0;
         this.lifeSpan = 0;
         this.emitter = new Mitt();
@@ -125,11 +164,11 @@ class Organism {
         if (!this.completed && !this.crashed) {
             this.lifeSpan = lifeSpanTimer;
 
-            this.object.moviment.acc.add(this.dna.genes[lifeSpanTimer]);
+            this.object.moviment.acc.add(this.dna.getNextMove(lifeSpanTimer));
             this.object.moviment.vel.add(this.object.moviment.acc);
             this.object.pos.add(this.object.moviment.vel);
             this.object.moviment.acc.mult(0);
-            this.object.moviment.vel.limit(4);
+            this.object.moviment.vel.limit(4);            
             this.object.moviment.heading = this.object.moviment.vel.heading();
             this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode, this.object.moviment.heading);
         }
@@ -300,7 +339,7 @@ function weightedResult(organism, target, distance) {
 
     // Lifespane constants
     const minLifespan = 0;
-    const maxLifespan = organism.dna.genesAmount;
+    const maxLifespan = organism.dna.genes.moviment.length;
     let lifeSpan = organism.lifeSpan;
 
     // Weights
@@ -465,7 +504,7 @@ function weightedResult(organism, target, distance) {
 
     // Lifespane constants
     const minLifespan = 0;
-    const maxLifespan = organism.dna.genesAmount;
+    const maxLifespan = organism.dna.genes.moviment.length;
     let lifeSpan = organism.lifeSpan;
 
     // Weights
