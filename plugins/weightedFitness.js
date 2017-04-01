@@ -57,7 +57,7 @@ function weightedResult(organism, target, distance) {
     let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
 
     // Apply extra weight when the organism hits the goal
-    if (organism.completed) result *= 10;
+    if (organism.completed) result *= 5;
 
     return result;
 }

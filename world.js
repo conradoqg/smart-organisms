@@ -214,6 +214,7 @@ class World {
                             // Target
                             if (organism.collidesCircle(this.target)) {
                                 organism.completed = true;
+                                organism.lifeSpan = this.config.lifeSpan;
                             }
 
                             // Off-screen

@@ -41,10 +41,10 @@ class Organism {
             let invertedDistance = Math.abs(p5i.width - this.distanceTo(target));
 
             if (this.completed) {
-                this.fitness = invertedDistance *= 10;
+                this.fitness = invertedDistance *= 5;
             }
             if (this.crashed) {
-                this.fitness = invertedDistance /= 10;
+                this.fitness = invertedDistance /= 5;
             }
         }
     }

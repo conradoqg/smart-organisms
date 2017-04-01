@@ -42,7 +42,7 @@ class Population {
                     this.organisms[i].fitness /= maxFit;
                 }
 
-                // Adds the organisms N times to mating pool according its fitness proportional value. Multiplies N by 100 to give a minimum of 1 options for the lowest ranked organism
+                // Adds the organisms N times to mating pool according to its fitness proportional value. Multiplies N by 100 to give a minimum of 1 option for the lowest ranked organism
                 this.matingPool = [];
                 for (let i = 0; i < this.organisms.length; i++) {
                     let n = this.organisms[i].fitness * 100;
