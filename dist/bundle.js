@@ -5,47 +5,47 @@ const AVERAGESIZE = {
 };
 
 class DNA {
-    constructor(movimentGenesAmount) {
+    constructor(movementGenesAmount) {
         let porpotion = p5i.random(0.50, 1.50);
         this.genes = {
-            moviment: [],
+            movement: [],
             size: {
                 width: AVERAGESIZE.WIDTH * porpotion,
                 height: AVERAGESIZE.HEIGHT * porpotion,
             },
             maxForce: p5i.random(0.1, 0.3)
         };
-        for (let i = 0; i < movimentGenesAmount; i++) {
-            this.genes.moviment[i] = this.createNewMovimentGene();
+        for (let i = 0; i < movementGenesAmount; i++) {
+            this.genes.movement[i] = this.createNewMovementGene();
         }
     }
 
     crossover(partner) {
-        const newDNA = new DNA(this.genes.moviment.length);
-        newDNA.genes.moviment = this.crossoverMoviment(partner);
+        const newDNA = new DNA(this.genes.movement.length);
+        newDNA.genes.movement = this.crossoverMovement(partner);
         newDNA.genes.size = this.crossoverSize(partner);
         newDNA.genes.maxForce = this.crossoverMaxForce(partner);        
         return newDNA;
     }
 
-    crossoverMoviment(partner) {
-        // Selects a random mid point position and cross the dna genes from that mid point
-        let newMovimentGenes = [];
-        let mid = p5i.floor(p5i.random(this.genes.moviment.length));
-        for (let i = 0; i < this.genes.moviment.length; i++) {
-            // Set the gene from itself or form its partner depending on the mid point.
+    crossoverMovement(partner) {
+        // Selects a random midpoint position and cross the dna genes from that midpoint
+        let newMovementGenes = [];
+        let mid = p5i.floor(p5i.random(this.genes.movement.length));
+        for (let i = 0; i < this.genes.movement.length; i++) {
+            // Set the gene from itself or form its partner depending on the midpoint.
             if (i > mid) {
-                newMovimentGenes[i] = this.genes.moviment[i];
+                newMovementGenes[i] = this.genes.movement[i];
             } else {
-                newMovimentGenes[i] = partner.genes.moviment[i];
+                newMovementGenes[i] = partner.genes.movement[i];
             }
 
             // Mutate the gene which will bring diversity to the organism. 0.01 mutation chance
             if (p5i.random(1) < 0.01) {
-                newMovimentGenes[i] = this.createNewMovimentGene();
+                newMovementGenes[i] = this.createNewMovementGene();
             }
         }
-        return newMovimentGenes;
+        return newMovementGenes;
     }
 
     crossoverSize(partner) {
@@ -64,15 +64,15 @@ class DNA {
         return newMaxForce;
     }
 
-    createNewMovimentGene() {
+    createNewMovementGene() {
         // Creates a new gene randomly
-        let newMovimentGene = p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1));
-        newMovimentGene.setMag(this.genes.maxForce);
-        return newMovimentGene;
+        let newMovementGene = p5i.createVector(p5i.random(-1, 1), p5i.random(-1, 1));
+        newMovementGene.setMag(this.genes.maxForce);
+        return newMovementGene;
     }
 
     getNextMove(tick) {
-        return this.genes.moviment[tick];
+        return this.genes.movement[tick];
     }
 }
 
@@ -119,10 +119,10 @@ class Organism {
         this.object.size = { width: this.dna.genes.size.width, height: this.dna.genes.size.height };
         this.object.pos = bornAt.sub(this.object.size.width / 2, this.object.size.height / 2);
         this.object.mode = p5i.CENTER;
-        this.object.moviment = {};
-        this.object.moviment.vel = p5i.createVector();
-        this.object.moviment.acc = p5i.createVector();
-        this.object.moviment.heading = this.object.moviment.vel.heading();
+        this.object.movement = {};
+        this.object.movement.vel = p5i.createVector();
+        this.object.movement.acc = p5i.createVector();
+        this.object.movement.heading = this.object.movement.vel.heading();
         this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode);
 
         this.initialPos = this.object.pos.copy();
@@ -147,10 +147,10 @@ class Organism {
             let invertedDistance = Math.abs(p5i.width - this.distanceTo(target));
 
             if (this.completed) {
-                this.fitness = invertedDistance *= 10;
+                this.fitness = invertedDistance *= 5;
             }
             if (this.crashed) {
-                this.fitness = invertedDistance /= 10;
+                this.fitness = invertedDistance /= 5;
             }
         }
     }
@@ -164,13 +164,13 @@ class Organism {
         if (!this.completed && !this.crashed) {
             this.lifeSpan = lifeSpanTimer;
 
-            this.object.moviment.acc.add(this.dna.getNextMove(lifeSpanTimer));
-            this.object.moviment.vel.add(this.object.moviment.acc);
-            this.object.pos.add(this.object.moviment.vel);
-            this.object.moviment.acc.mult(0);
-            this.object.moviment.vel.limit(4);            
-            this.object.moviment.heading = this.object.moviment.vel.heading();
-            this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode, this.object.moviment.heading);
+            this.object.movement.acc.add(this.dna.getNextMove(lifeSpanTimer));
+            this.object.movement.vel.add(this.object.movement.acc);
+            this.object.pos.add(this.object.movement.vel);
+            this.object.movement.acc.mult(0);
+            this.object.movement.vel.limit(4);            
+            this.object.movement.heading = this.object.movement.vel.heading();
+            this.object.coors = p5i.getCoorsFromRect(this.object.pos.x, this.object.pos.y, this.object.size.width, this.object.size.height, this.object.mode, this.object.movement.heading);
         }
     }
 
@@ -339,7 +339,7 @@ function weightedResult(organism, target, distance) {
 
     // Lifespane constants
     const minLifespan = 0;
-    const maxLifespan = organism.dna.genes.moviment.length;
+    const maxLifespan = organism.dna.genes.movement.length;
     let lifeSpan = organism.lifeSpan;
 
     // Weights
@@ -354,7 +354,7 @@ function weightedResult(organism, target, distance) {
     let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
 
     // Apply extra weight when the organism hits the goal
-    if (organism.completed) result *= 10;
+    if (organism.completed) result *= 5;
 
     return result;
 }
@@ -504,7 +504,7 @@ function weightedResult(organism, target, distance) {
 
     // Lifespane constants
     const minLifespan = 0;
-    const maxLifespan = organism.dna.genes.moviment.length;
+    const maxLifespan = organism.dna.genes.movement.length;
     let lifeSpan = organism.lifeSpan;
 
     // Weights
@@ -519,7 +519,7 @@ function weightedResult(organism, target, distance) {
     let result = (distanceFitness * distanceWeight) + (lifeSpanFitness * lifeSpaneWeight);
 
     // Apply extra weight when the organism hits the goal
-    if (organism.completed) result *= 10;
+    if (organism.completed) result *= 5;
 
     return result;
 }
@@ -589,7 +589,7 @@ class Population {
                     this.organisms[i].fitness /= maxFit;
                 }
 
-                // Adds the organisms N times to mating pool according its fitness proportional value. Multiplies N by 100 to give a minimum of 1 options for the lowest ranked organism
+                // Adds the organisms N times to mating pool according to its fitness proportional value. Multiplies N by 100 to give a minimum of 1 option for the lowest ranked organism
                 this.matingPool = [];
                 for (let i = 0; i < this.organisms.length; i++) {
                     let n = this.organisms[i].fitness * 100;
@@ -752,11 +752,11 @@ class World {
         this.world.size = { width: this.config.width, height: this.config.height };
         this.world.pos = p5i.createVector(0, 0);
         this.world.mode = p5i.CORNER;
-        this.world.moviment = {};
-        this.world.moviment.vel = p5i.createVector();
-        this.world.moviment.acc = p5i.createVector();
-        this.world.moviment.heading = null;
-        this.world.coors = p5i.getCoorsFromRect(this.world.pos.x, this.world.pos.y, this.world.size.width, this.world.size.height, this.world.mode, this.world.moviment.heading);
+        this.world.movement = {};
+        this.world.movement.vel = p5i.createVector();
+        this.world.movement.acc = p5i.createVector();
+        this.world.movement.heading = null;
+        this.world.coors = p5i.getCoorsFromRect(this.world.pos.x, this.world.pos.y, this.world.size.width, this.world.size.height, this.world.mode, this.world.movement.heading);
 
         this.target = {};
         this.target.type = 'ellipse';
@@ -769,33 +769,33 @@ class World {
         this.obstacle1.size = { width: 300, height: 10 };
         this.obstacle1.pos = p5i.createVector(p5i.width / 2, (p5i.height / 2) + (p5i.height / 4));
         this.obstacle1.mode = p5i.CENTER;
-        this.obstacle1.moviment = {};
-        this.obstacle1.moviment.vel = p5i.createVector();
-        this.obstacle1.moviment.acc = p5i.createVector();
-        this.obstacle1.moviment.heading = this.obstacle1.moviment.vel.heading();
-        this.obstacle1.coors = p5i.getCoorsFromRect(this.obstacle1.pos.x, this.obstacle1.pos.y, this.obstacle1.size.width, this.obstacle1.size.height, this.obstacle1.mode, this.obstacle1.moviment.heading);
+        this.obstacle1.movement = {};
+        this.obstacle1.movement.vel = p5i.createVector();
+        this.obstacle1.movement.acc = p5i.createVector();
+        this.obstacle1.movement.heading = this.obstacle1.movement.vel.heading();
+        this.obstacle1.coors = p5i.getCoorsFromRect(this.obstacle1.pos.x, this.obstacle1.pos.y, this.obstacle1.size.width, this.obstacle1.size.height, this.obstacle1.mode, this.obstacle1.movement.heading);
 
         this.obstacle2 = {};
         this.obstacle2.type = 'rect';
         this.obstacle2.size = { width: 150, height: 5 };
         this.obstacle2.pos = p5i.createVector((p5i.width / 2) / 2, (p5i.height / 3));
         this.obstacle2.mode = p5i.CENTER;
-        this.obstacle2.moviment = {};
-        this.obstacle2.moviment.vel = p5i.createVector();
-        this.obstacle2.moviment.acc = p5i.createVector();
-        this.obstacle2.moviment.heading = p5i.PI + p5i.QUARTER_PI;
-        this.obstacle2.coors = p5i.getCoorsFromRect(this.obstacle2.pos.x, this.obstacle2.pos.y, this.obstacle2.size.width, this.obstacle2.size.height, this.obstacle2.mode, this.obstacle2.moviment.heading);
+        this.obstacle2.movement = {};
+        this.obstacle2.movement.vel = p5i.createVector();
+        this.obstacle2.movement.acc = p5i.createVector();
+        this.obstacle2.movement.heading = p5i.PI + p5i.QUARTER_PI;
+        this.obstacle2.coors = p5i.getCoorsFromRect(this.obstacle2.pos.x, this.obstacle2.pos.y, this.obstacle2.size.width, this.obstacle2.size.height, this.obstacle2.mode, this.obstacle2.movement.heading);
 
         this.obstacle3 = {};
         this.obstacle3.type = 'rect';
         this.obstacle3.size = { width: 150, height: 5 };
         this.obstacle3.pos = p5i.createVector((p5i.width / 2) + (p5i.height / 4), (p5i.height / 3));
         this.obstacle3.mode = p5i.CENTER;
-        this.obstacle3.moviment = {};
-        this.obstacle3.moviment.vel = p5i.createVector();
-        this.obstacle3.moviment.acc = p5i.createVector();
-        this.obstacle3.moviment.heading = p5i.PI - p5i.QUARTER_PI;
-        this.obstacle3.coors = p5i.getCoorsFromRect(this.obstacle3.pos.x, this.obstacle3.pos.y, this.obstacle3.size.width, this.obstacle3.size.height, this.obstacle3.mode, this.obstacle3.moviment.heading);
+        this.obstacle3.movement = {};
+        this.obstacle3.movement.vel = p5i.createVector();
+        this.obstacle3.movement.acc = p5i.createVector();
+        this.obstacle3.movement.heading = p5i.PI - p5i.QUARTER_PI;
+        this.obstacle3.coors = p5i.getCoorsFromRect(this.obstacle3.pos.x, this.obstacle3.pos.y, this.obstacle3.size.width, this.obstacle3.size.height, this.obstacle3.mode, this.obstacle3.movement.heading);
 
         this.obstacles = [this.obstacle1, this.obstacle2, this.obstacle3];
     }
@@ -831,6 +831,7 @@ class World {
                             // Target
                             if (organism.collidesCircle(this.target)) {
                                 organism.completed = true;
+                                organism.lifeSpan = this.config.lifeSpan;
                             }
 
                             // Off-screen
