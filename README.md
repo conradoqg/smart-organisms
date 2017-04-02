@@ -3,7 +3,7 @@
 
 Based on the work of Daniel Shiffman: http://codingtra.in
 
-You can run it [here](https://rawgit.com/conradoqg/study-nano-projects/master/smart-organisms/index.html).
+You can run it [here](https://rawgit.com/conradoqg/smart-organisms/master/index.html).
 
 ## Goals
 
