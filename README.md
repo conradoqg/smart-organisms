@@ -7,7 +7,7 @@ You can run it [here](https://rawgit.com/conradoqg/smart-organisms/master/index.
 
 ## Goals
 
-The goal of this nano project was to understand how much I could to improve the smart rockets project from Daniel Shiffman. 
+The goal of this nano project was to understand how much I could do to improve the smart rockets project from Daniel Shiffman. 
 
 To achieve that I created the following list of improvements:
 1. Make the canvas larger so it can be more interesting, especially when dealing with performance improvements;
@@ -23,7 +23,7 @@ To achieve that I created the following list of improvements:
 11. Add more gene characteristics!
 
 ## Genetic algorithm
-The genetic algorithm used in this project if very straight forward. A world containing a population, a population composed of organisms and each organism with its genes: movement, size and max force (max force in this case representing its agility).
+The genetic algorithm used in this project if very straight forward. A world containing a population, a population composed of organisms and each organism with its genes: moviment, size and max force (max force in this case representing its agility).
 
 At the end of each generation, every organism fitness is calculated using one of the three available methods:
 1. A\*: A weighted calculation between life span and A* distance to target;
@@ -94,31 +94,31 @@ And at the end, cross its DNAs with a 0.1% mutation. The mutation is necessary t
 Crossover:
 ```javascript
 crossover(partner) {
-    const newDNA = new DNA(this.genes.movement.length);
-    newDNA.genes.movement = this.crossoverMovement(partner);
+    const newDNA = new DNA(this.genes.moviment.length);
+    newDNA.genes.moviment = this.crossoverMoviment(partner);
     newDNA.genes.size = this.crossoverSize(partner);
     newDNA.genes.maxForce = this.crossoverMaxForce(partner);        
     return newDNA;
 }
 
-crossoverMovement(partner) {
+crossoverMoviment(partner) {
     // Selects a random midpoint position and cross the dna genes from that midpoint
-    let newMovementGenes = [];
-    let mid = p5i.floor(p5i.random(this.genes.movement.length));
-    for (let i = 0; i < this.genes.movement.length; i++) {
+    let newMovimentGenes = [];
+    let mid = p5i.floor(p5i.random(this.genes.moviment.length));
+    for (let i = 0; i < this.genes.moviment.length; i++) {
         // Set the gene from itself or form its partner depending on the midpoint.
         if (i > mid) {
-            newMovementGenes[i] = this.genes.movement[i];
+            newMovimentGenes[i] = this.genes.moviment[i];
         } else {
-            newMovementGenes[i] = partner.genes.movement[i];
+            newMovimentGenes[i] = partner.genes.moviment[i];
         }
 
         // Mutate the gene which will bring diversity to the organism. 0.01 mutation chance
         if (p5i.random(1) < 0.01) {
-            newMovementGenes[i] = this.createNewMovementGene();
+            newMovimentGenes[i] = this.createNewMovimentGene();
         }
     }
-    return newMovementGenes;
+    return newMovimentGenes;
 }
 
 crossoverSize(partner) {
