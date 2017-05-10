@@ -23,7 +23,7 @@ To achieve that I created the following list of improvements:
 11. Add more gene characteristics!
 
 ## Genetic algorithm
-The genetic algorithm used in this project if very straight forward. A world containing a population, a population composed of organisms and each organism with its genes: moviment, size and max force (max force in this case representing its agility).
+The genetic algorithm used in this project is very straight forward. A world containing a population, a population composed of organisms and each organism with its genes: moviment, size and max force (max force in this case representing its agility).
 
 At the end of each generation, every organism fitness is calculated using one of the three available methods:
 1. A\*: A weighted calculation between life span and A* distance to target;
